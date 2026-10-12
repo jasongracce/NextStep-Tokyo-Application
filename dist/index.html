@@ -84,6 +84,38 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
   .content{--type-title:2rem}
   .experience.section-two .content{width:100%;max-width:none;margin:0;padding:130px 24px 120px}
 }
+/* Quiet section structure: the overview leads, then related information follows. */
+:root{--space-close:.75rem;--space-paragraph:1rem;--space-group:1.5rem;--space-section:2.5rem;--reading-width:60ch;--team-width:56rem}
+::selection{background:#192b42;color:var(--paper)}
+.content h2{margin-bottom:var(--space-close)}
+.content .eyebrow{margin-bottom:var(--space-group)}
+.content .description{max-width:var(--reading-width)}
+.experience:not(.section-two) .detail{border-top:1px solid var(--line);margin-top:var(--space-group);padding-top:var(--space-group);color:#46566b}
+.content .form-placeholder{border:0;padding:0}
+.content .form-placeholder strong{color:var(--ink);font-size:var(--type-subheading);line-height:1.35;margin-bottom:var(--space-close)}
+.experience.section-two .content{width:min(var(--team-width),calc(100% - 96px));max-width:var(--team-width);padding-top:140px;padding-bottom:140px}
+.experience.section-two .detail{margin-top:var(--space-section);max-width:none}
+.content .team-descriptions{margin:0;max-width:none}
+.content .team-descriptions section{display:grid;grid-template-columns:12rem minmax(0,1fr);column-gap:var(--space-section);row-gap:var(--space-paragraph);padding:2rem 0;align-items:start}
+.content .team-descriptions h3{grid-column:1;grid-row:1;margin:0;max-width:14ch}
+.content .team-descriptions p{grid-column:2;margin:0;max-width:var(--reading-width)}
+.content .team-descriptions section:last-child{padding-bottom:0}
+.navigation button{min-width:44px;min-height:44px}
+.navigation button:hover:not(:disabled){text-decoration:underline;text-underline-offset:5px}
+.counter{font-variant-numeric:tabular-nums}
+@media(min-width:701px) and (max-width:960px){
+  .content .team-descriptions section{grid-template-columns:10rem minmax(0,1fr);column-gap:var(--space-group)}
+  .experience:not(.section-two) .content{margin-left:49%;width:47%;padding-right:24px}
+}
+@media(max-width:700px){
+  .experience.section-two .content{width:100%;max-width:none;margin:0;padding:130px 24px 120px}
+  .experience.section-two .detail{margin-top:2rem}
+  .content .team-descriptions section{grid-template-columns:minmax(0,1fr);gap:var(--space-paragraph);padding:var(--space-group) 0}
+  .content .team-descriptions h3{grid-column:1;grid-row:auto;max-width:none}
+  .content .team-descriptions p{grid-column:1}
+  .experience:not(.section-two) .detail{margin-top:var(--space-group)}
+}
+@media(prefers-reduced-motion:reduce){.ring,.content{transition:none}}
 </style>
 </head>
 <body>
