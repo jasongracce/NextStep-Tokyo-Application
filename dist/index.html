@@ -118,12 +118,15 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
 @media(prefers-reduced-motion:reduce){.ring,.content{transition:none}}
 :root{--text-highlight:#dfe3f1}
 .text-highlight{padding:0 .04em;box-shadow:inset 0 -.38em var(--text-highlight);box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.welcome-highlight{padding:0 .04em;background-image:linear-gradient(var(--text-highlight),var(--text-highlight));background-repeat:no-repeat;background-position:left 90%;background-size:0% .38em;box-decoration-break:clone;-webkit-box-decoration-break:clone;animation:welcomeHighlight .65s cubic-bezier(.22,1,.36,1) 3.35s both}
+@keyframes welcomeHighlight{from{background-size:0% .38em}to{background-size:100% .38em}}
+@media(prefers-reduced-motion:reduce){.welcome-highlight{animation:none;background-size:100% .38em}}
 @media(forced-colors:active){.text-highlight{box-shadow:none;text-decoration:underline;text-underline-offset:.12em}}
 </style>
 </head>
 <body>
 <header><div class="brand">NextStep<span>Tokyo</span></div><small>For Students. By Students</small></header>
-<div class="intro" aria-hidden="true"><h1><span class="intro-message welcome">Welcome!</span><span class="intro-message invitation">Ready to Join NextStep Tokyo?</span></h1></div>
+<div class="intro" aria-hidden="true"><h1><span class="intro-message welcome">Welcome!</span><span class="intro-message invitation">Ready to Join <span class="welcome-highlight">NextStep Tokyo</span>?</span></h1></div>
 <button class="replay" type="button">Replay welcome ↗</button>
 <main class="experience" aria-label="Explore NextStep Tokyo">
 <nav class="ring" aria-label="Sections"><button class="marker active" aria-label="Section 1: Who we are" aria-current="step">01</button><button class="marker" aria-label="Section 2: Our organizational structure">02</button><button class="marker" aria-label="Section 3: Join NextStep Tokyo">03</button></nav>
@@ -136,9 +139,10 @@ const sections=[{label:'A shared next step',title:'Who we are',description:'A st
 let active=0;let timer;const ring=document.querySelector('.ring');const buttons=[...document.querySelectorAll('.marker')];const body=document.querySelector('.section-body');const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function renderHeading(title){
   const heading=document.querySelector('#heading');
-  const phrase=['we','structure','NextStep Tokyo'][active];
-  const start=title.indexOf(phrase);
+  const phrase=[null,'structure','NextStep Tokyo'][active];
   heading.textContent=title;
+  if(!phrase)return;
+  const start=title.indexOf(phrase);
   if(start<0)return;
   const highlight=document.createElement('span');
   highlight.className='text-highlight';
@@ -232,7 +236,7 @@ window.addEventListener('touchend',event=>{
   chargeScroll(direction,Math.abs(dy));
 },{passive:true});
 document.querySelector('.replay').addEventListener('click',()=>{if(!reduced)welcomeReadyAt=performance.now()+6050;});
-buttons.forEach((button,i)=>button.addEventListener('click',()=>select(i)));document.querySelector('#back').addEventListener('click',()=>select(active-1));document.querySelector('#next').addEventListener('click',()=>select(active+1));document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')select(active+1);if(event.key==='ArrowLeft')select(active-1)});document.querySelector('.replay').addEventListener('click',()=>{if(reduced)return;const intro=document.querySelector('.intro');intro.style.animation='none';intro.querySelectorAll('.intro-message').forEach(span=>span.style.animation='none');void intro.offsetWidth;intro.style.animation='';intro.querySelectorAll('.intro-message').forEach(span=>span.style.animation='')});render();
+buttons.forEach((button,i)=>button.addEventListener('click',()=>select(i)));document.querySelector('#back').addEventListener('click',()=>select(active-1));document.querySelector('#next').addEventListener('click',()=>select(active+1));document.addEventListener('keydown',event=>{if(event.key==='ArrowRight')select(active+1);if(event.key==='ArrowLeft')select(active-1)});document.querySelector('.replay').addEventListener('click',()=>{if(reduced)return;const intro=document.querySelector('.intro');intro.style.animation='none';intro.querySelectorAll('.intro-message,.welcome-highlight').forEach(span=>span.style.animation='none');void intro.offsetWidth;intro.style.animation='';intro.querySelectorAll('.intro-message,.welcome-highlight').forEach(span=>span.style.animation='')});render();
 </script>
 </body>
 </html>
