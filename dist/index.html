@@ -40,6 +40,28 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
 .scroll-progress .track{stroke:var(--line)}
 .scroll-progress .fill{stroke:var(--ink);stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transition:stroke-dashoffset .14s ease-out}
 @media(prefers-reduced-motion:reduce){.scroll-progress,.scroll-progress .fill{transition:none}}
+@media(max-width:700px){
+  header{padding:20px 20px;gap:12px}
+  header small{max-width:120px;text-align:right;line-height:1.5}
+  .replay{right:20px;top:54px;min-height:44px;padding:12px 0}
+  .experience{padding-bottom:0}
+  .ring{top:110px;left:20px;right:20px;width:auto;height:auto;margin:0;border:0;border-radius:0;display:flex;gap:12px;transform:none!important}
+  .marker,.marker:nth-child(1),.marker:nth-child(3){position:relative;top:auto;left:auto;transform:none;min-width:48px;min-height:48px;padding:10px;font-size:24px;letter-spacing:-1px;border-bottom:2px solid transparent}
+  .marker:before{display:none}
+  .marker.active{border-bottom-color:var(--ink)}
+  .experience.section-two .ring{visibility:hidden}
+  .content{margin-left:0;width:100%;max-width:none;padding:190px 24px 120px;transition:none}
+  .experience.section-two .content{margin-left:0;width:100%;padding:130px 24px 120px}
+  h2{font-size:clamp(32px,8vw,44px);overflow-wrap:break-word}
+  .description,.team-descriptions{font-size:15px;line-height:1.75}
+  .detail{font-size:14px;line-height:1.75}
+  .eyebrow{font-size:10px}
+  footer{left:0;right:0;bottom:0;padding:12px 20px calc(12px + env(safe-area-inset-bottom));gap:10px;z-index:3;box-shadow:0 -10px 15px var(--paper)}
+  .navigation{gap:12px}
+  .navigation button{min-height:44px;min-width:44px;font-size:12px;padding:12px 0}
+  .scroll-progress{bottom:calc(84px + env(safe-area-inset-bottom))}
+  .scroll-progress.scrolling-up{top:100px}
+}
 </style>
 </head>
 <body>
