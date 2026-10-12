@@ -116,6 +116,9 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
   .experience:not(.section-two) .detail{margin-top:var(--space-group)}
 }
 @media(prefers-reduced-motion:reduce){.ring,.content{transition:none}}
+:root{--text-highlight:#dfe3f1}
+.text-highlight{padding:0 .04em;box-shadow:inset 0 -.38em var(--text-highlight);box-decoration-break:clone;-webkit-box-decoration-break:clone}
+@media(forced-colors:active){.text-highlight{box-shadow:none;text-decoration:underline;text-underline-offset:.12em}}
 </style>
 </head>
 <body>
@@ -131,7 +134,18 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
 <script>
 const sections=[{label:'A shared next step',title:'Who we are',description:'A student-led organization bridging classroom learning and practical experience. NextStep Tokyo brings students together to learn, contribute, and take their next step as a team.',detail:'Explore our teams, find where you can contribute, and help shape what comes next.'},{label:'Find your place',title:'Our organizational structure',description:'Different strengths. One shared direction. Explore the teams that bring NextStep Tokyo together.',detail:'<div class="team-descriptions"><section><h3>Organizational leader</h3><p>The organizational leader sets NextStep Tokyo’s direction and keeps the teams working toward the same goals. They coordinate major decisions, support team leads, and communicate with external partners and collaborators.</p></section><section><h3>Marketing team</h3><p>The Marketing team helps students discover NextStep Tokyo and understand what we do. It manages our communications, promotes events, and shares the stories behind our work.</p><p><strong>Graphics</strong> creates visual materials for event announcements, social media, and other communications.</p><p><strong>Video and photography</strong> captures our events and produces photo and video content that shows our community in action.</p></section><section><h3>Event team</h3><p>The Event team turns ideas into experiences where students can apply what they learn. Its <strong>Event Planning and Logistics</strong> subteam develops workshops and competitions, plans the event schedule, and coordinates the practical details needed to run each event.</p></section></div>'},{label:'Your next step starts here',title:'Join NextStep Tokyo',description:'Bring your curiosity, interests, and ideas. Find a team where you can contribute and grow with other students.',detail:'<div class="form-placeholder"><strong>Applications opening soon</strong>The application form will appear here once registration opens.</div>'}];
 let active=0;let timer;const ring=document.querySelector('.ring');const buttons=[...document.querySelectorAll('.marker')];const body=document.querySelector('.section-body');const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
-function render(){const section=sections[active];document.querySelector('.experience').classList.toggle('section-two',active===1);ring.inert=active===1;document.querySelector('#eyebrow').textContent=section.label;document.querySelector('#heading').textContent=section.title;document.querySelector('#description').textContent=section.description;document.querySelector('#detail').innerHTML=section.detail;document.querySelector('.counter').textContent=`0${active+1} / 03`;document.querySelector('#back').disabled=active===0;document.querySelector('#next').disabled=active===2;ring.style.transform=`rotate(${30-active*30}deg)`;buttons.forEach((button,i)=>{button.classList.toggle('active',i===active);if(i===active)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current')});body.classList.remove('changing')}
+function renderHeading(title){
+  const heading=document.querySelector('#heading');
+  const phrase=['we','structure','NextStep Tokyo'][active];
+  const start=title.indexOf(phrase);
+  heading.textContent=title;
+  if(start<0)return;
+  const highlight=document.createElement('span');
+  highlight.className='text-highlight';
+  highlight.textContent=phrase;
+  heading.replaceChildren(document.createTextNode(title.slice(0,start)),highlight,document.createTextNode(title.slice(start+phrase.length)));
+}
+function render(){const section=sections[active];document.querySelector('.experience').classList.toggle('section-two',active===1);ring.inert=active===1;document.querySelector('#eyebrow').textContent=section.label;renderHeading(section.title);document.querySelector('#description').textContent=section.description;document.querySelector('#detail').innerHTML=section.detail;document.querySelector('.counter').textContent=`0${active+1} / 03`;document.querySelector('#back').disabled=active===0;document.querySelector('#next').disabled=active===2;ring.style.transform=`rotate(${30-active*30}deg)`;buttons.forEach((button,i)=>{button.classList.toggle('active',i===active);if(i===active)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current')});body.classList.remove('changing')}
 function select(index){if(index<0||index>2||index===active)return;clearTimeout(timer);resetScrollProgress();body.classList.add('changing');active=index;scrollLockedUntil=performance.now()+(reduced?100:500);window.scrollTo({top:0,left:0,behavior:'instant'});timer=setTimeout(()=>{render();window.scrollTo({top:0,left:0,behavior:'instant'});},reduced?0:220)}
 let scrollLockedUntil=0;
 let welcomeReadyAt=reduced?0:performance.now()+6050;
