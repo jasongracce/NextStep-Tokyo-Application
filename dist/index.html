@@ -62,6 +62,28 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
   .scroll-progress{bottom:calc(84px + env(safe-area-inset-bottom))}
   .scroll-progress.scrolling-up{top:100px}
 }
+/* Main sections are reading surfaces: stable roles, natural spacing, and readable prose. */
+.content{--type-title:2.25rem;--type-subheading:1.25rem;--type-body:1rem;--type-label:.875rem}
+.content h2{font-size:var(--type-title);font-weight:700;line-height:1.2;letter-spacing:-.025em;text-wrap:balance;overflow-wrap:break-word;margin:0 0 .75rem}
+.content .eyebrow{font-size:var(--type-label);font-weight:400;line-height:1.5;letter-spacing:normal;text-transform:none;margin:0 0 1.5rem;color:#46566b}
+.content .description,.content .detail,.content .team-descriptions{font-size:var(--type-body);font-weight:400;line-height:1.7;letter-spacing:normal;max-width:60ch}
+.content .description{margin:0}
+.content .detail{margin-top:1.5rem}
+.content .team-descriptions{margin-top:2rem}
+.content .team-descriptions section{padding:1.75rem 0}
+.content .team-descriptions h3{font-size:var(--type-subheading);font-weight:700;line-height:1.35;letter-spacing:-.015em;margin:0 0 .875rem;text-wrap:balance}
+.content .team-descriptions p{margin:0 0 1rem}
+.content .team-descriptions p:last-child{margin-bottom:0}
+.content .team-descriptions strong,.content .form-placeholder strong{font-weight:700}
+.content .form-placeholder{padding-top:1.25rem}
+.content .form-placeholder strong{margin-bottom:.5rem}
+.experience.section-two .content{max-width:60ch;width:min(60ch,calc(100% - 96px));margin-left:auto;margin-right:auto;text-align:left}
+.experience.section-two h2,.experience.section-two .eyebrow,.experience.section-two .description{text-align:left}
+.experience.section-two .description{margin-left:0;margin-right:0}
+@media(max-width:700px){
+  .content{--type-title:2rem}
+  .experience.section-two .content{width:100%;max-width:none;margin:0;padding:130px 24px 120px}
+}
 </style>
 </head>
 <body>
@@ -70,7 +92,7 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
 <button class="replay" type="button">Replay welcome ↗</button>
 <main class="experience" aria-label="Explore NextStep Tokyo">
 <nav class="ring" aria-label="Sections"><button class="marker active" aria-label="Section 1: Who we are" aria-current="step">01</button><button class="marker" aria-label="Section 2: Our organizational structure">02</button><button class="marker" aria-label="Section 3: Join NextStep Tokyo">03</button></nav>
-<div class="content"><div class="section-body" aria-live="polite"><div class="eyebrow" id="eyebrow"></div><h2 id="heading"></h2><p class="description" id="description"></p><div class="detail" id="detail"></div></div></div>
+<div class="content"><div class="section-body" aria-live="polite"><h2 id="heading"></h2><div class="eyebrow" id="eyebrow"></div><p class="description" id="description"></p><div class="detail" id="detail"></div></div></div>
 </main>
 <footer><span>Tokyo, Japan</span><div class="navigation"><button id="back" aria-label="Previous section">← Back</button><span class="counter">01 / 03</span><button id="next" aria-label="Next section">Next →</button></div></footer>
 <div class="scroll-progress" role="progressbar" aria-label="Scroll to change section" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-hidden="true"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="track" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" pathLength="100"/></svg></div>
