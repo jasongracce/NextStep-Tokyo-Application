@@ -139,7 +139,7 @@ const sections=[{label:'A shared next step',title:'Who we are',description:'A st
 let active=0;let timer;const ring=document.querySelector('.ring');const buttons=[...document.querySelectorAll('.marker')];const body=document.querySelector('.section-body');const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function renderHeading(title){
   const heading=document.querySelector('#heading');
-  const phrase=[null,'structure','NextStep Tokyo'][active];
+  const phrase=[null,'organizational structure','NextStep Tokyo'][active];
   heading.textContent=title;
   if(!phrase)return;
   const start=title.indexOf(phrase);
