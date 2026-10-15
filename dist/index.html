@@ -156,21 +156,21 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
 }
 @media(max-width:380px){footer>span{display:none}.navigation{width:100%;justify-content:space-between}}
 @media(prefers-reduced-motion:reduce){.welcome-playing .skip-welcome{display:none}.welcome-playing .experience,.welcome-playing footer{visibility:visible}}
-/* One continuous handoff: hold the invitation, lift the curtain, then settle into reading. */
+/* Push through the invitation's lettering, then gently settle into the reading plane. */
 body.welcome-playing{overflow:hidden}
-.intro{animation:welcomeCurtain 1.3s cubic-bezier(.76,0,.24,1) 4.85s both}
-.intro h1{animation:welcomeDeparture 1.1s cubic-bezier(.22,1,.36,1) 4.85s both}
-.experience{opacity:1;animation:mainArrival 1.35s cubic-bezier(.22,1,.36,1) 4.95s both}
-header,footer{animation:chromeArrival .75s ease 5.5s both}
+.intro{overflow:hidden;animation:welcomeDissolve 1.8s linear 4.85s both}
+.intro h1{transform-origin:var(--zoom-x,50%) var(--zoom-y,55%);animation:welcomeFlyThrough 1.8s cubic-bezier(.65,0,.2,1) 4.85s both}
+.experience{opacity:1;transform-origin:50% 40svh;animation:mainArrival 2.2s cubic-bezier(.16,1,.3,1) 5.45s both}
+header,footer{animation:chromeArrival .9s ease 6.45s both}
 .welcome-playing .experience,.welcome-playing footer{visibility:visible}
 .welcome-skipped .experience,.welcome-skipped header,.welcome-skipped footer{animation:none;opacity:1;transform:none;filter:none}
 @keyframes invitationMessage{0%{opacity:0;transform:translateY(10px)}28%,100%{opacity:1;transform:translateY(0)}}
-@keyframes welcomeCurtain{0%{clip-path:inset(0 0 0 0);visibility:visible}100%{clip-path:inset(0 0 100% 0);visibility:hidden}}
-@keyframes welcomeDeparture{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-8vh)}}
-@keyframes mainArrival{0%{opacity:0;transform:translateY(56px);filter:blur(6px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes welcomeDissolve{0%,42%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}
+@keyframes welcomeFlyThrough{0%{transform:perspective(900px) translateZ(0);filter:blur(0);opacity:1}55%{opacity:1;filter:blur(.5px)}100%{transform:perspective(900px) translateZ(882px);filter:blur(3px);opacity:0}}
+@keyframes mainArrival{0%{opacity:0;transform:scale(.88);filter:blur(8px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 @keyframes chromeArrival{from{opacity:0}to{opacity:1}}
 @media(max-width:900px){
-  @keyframes mainArrival{0%{opacity:0;transform:translateY(32px);filter:blur(3px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}
+  @keyframes mainArrival{0%{opacity:0;transform:scale(.92);filter:blur(4px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 }
 @media(prefers-reduced-motion:reduce){
   body.welcome-playing{overflow:auto}
@@ -210,7 +210,7 @@ function renderHeading(title){
 function render(){const section=sections[active];document.querySelector('.experience').classList.toggle('section-two',active===1);updateSectionNavigation();document.querySelector('#eyebrow').textContent=section.label;renderHeading(section.title);document.querySelector('#description').textContent=section.description;document.querySelector('#detail').innerHTML=section.detail;document.querySelector('#back').disabled=active===0;document.querySelector('#next').disabled=active===2;ring.style.transform=`rotate(${30-active*30}deg)`;buttons.forEach((button,i)=>{button.classList.toggle('active',i===active);if(i===active)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current')});body.classList.remove('changing')}
 function select(index){if(index<0||index>2||index===active)return;clearTimeout(timer);resetScrollProgress();body.classList.add('changing');active=index;scrollLockedUntil=performance.now()+(reduced?100:500);window.scrollTo({top:0,left:0,behavior:'instant'});timer=setTimeout(()=>{render();window.scrollTo({top:0,left:0,behavior:'instant'});},reduced?0:220)}
 let scrollLockedUntil=0;
-let welcomeReadyAt=reduced?0:performance.now()+6300;
+let welcomeReadyAt=reduced?0:performance.now()+7650;
 const progressRing=document.querySelector('.scroll-progress');
 const progressFill=progressRing.querySelector('.fill');
 let scrollCharge=0,chargeDirection=0,chargeTimer,completionTimer;
@@ -302,7 +302,22 @@ function finishWelcome(){
   document.body.classList.remove('welcome-playing');
   welcomeContent.forEach(element=>element.inert=false);
 }
-let welcomeTimer=setTimeout(finishWelcome,reduced?0:6300);
+function setWelcomeZoomOrigin(){
+  const title=document.querySelector('.intro h1');
+  const word=document.querySelector('.welcome-highlight');
+  const text=word.firstChild;
+  const index=text.textContent.lastIndexOf('o');
+  const range=document.createRange();
+  range.setStart(text,index);range.setEnd(text,index+1);
+  const letter=range.getBoundingClientRect(),bounds=title.getBoundingClientRect();
+  title.style.setProperty('--zoom-x',`${letter.left+letter.width/2-bounds.left}px`);
+  title.style.setProperty('--zoom-y',`${letter.top+letter.height/2-bounds.top}px`);
+}
+if(!reduced){
+  setWelcomeZoomOrigin();
+  document.fonts.ready.then(setWelcomeZoomOrigin);
+}
+let welcomeTimer=setTimeout(finishWelcome,reduced?0:7650);
 document.querySelector('.skip-welcome').addEventListener('click',()=>{
   clearTimeout(welcomeTimer);
   welcomeReadyAt=0;
