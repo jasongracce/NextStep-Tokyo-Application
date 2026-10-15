@@ -18,7 +18,7 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=900});
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
     await send('Page.navigate',{url:'file:///'+path.resolve(__dirname,'../dist/index.html').replaceAll('\\','/')});await sleep(350);
-    await evaluate('select(2)');await sleep(100);
+    assert.equal(await evaluate("document.querySelector('.application')===null"),true);await evaluate('select(2)');await sleep(100);assert.equal(await evaluate("document.querySelector('.apply-link').textContent"),'Apply');await evaluate("document.querySelector('.apply-link').click()");await sleep(300);
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 3');
     await evaluate("document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate('document.activeElement.name'),'full_name');
@@ -27,12 +27,12 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     await evaluate("document.querySelector('[name=preferred_role][value=graphics]').click();document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 3 of 3');
     assert.equal(await evaluate("document.querySelector('.application [type=submit]').disabled"),true);
-    await evaluate("select(0)");await sleep(100);await evaluate('select(2)');await sleep(100);
+    await evaluate("document.querySelector('[data-edit=\"0\"]').click();document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate("document.querySelector('[name=full_name]').value"),'Jane Student');
     assert.equal(await evaluate("document.querySelector('[name=preferred_role]:checked').value"),'graphics');
     // Simulate configured verification and endpoint; no live service or applicant data.
     await evaluate(`(()=>{window.APPLICATION_CONFIG.endpoint='https://test.invalid';window.APPLICATION_CONFIG.turnstileSiteKey='test';window.turnstile={render:(element,options)=>{options.callback('verified');return 1;},remove:()=>{}};window.applicationTurnstileReady();document.querySelector('[name=motivation]').value='I would like to help.';document.querySelector('[name=consent]').click();document.querySelector('[data-edit="0"]').click();document.querySelector('[name=full_name]').focus();document.querySelector('[name=full_name]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));})()`);
-    assert.equal(await evaluate('active'),2);
+    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 3');
     await evaluate("document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
     assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth"),`Overflow at ${width}`);
     const rects=await evaluate("[...document.querySelectorAll('.application-actions button')].filter(x=>!x.hidden).map(x=>x.getBoundingClientRect().height)");assert.ok(rects.every(height=>height>=48));
@@ -43,13 +43,9 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     assert.equal(await evaluate('sent.length'),2);assert.equal(await evaluate('sent[0].request_id===sent[1].request_id'),true);
     await evaluate("window.calls=0;window.fetch=()=>{calls++;return new Promise(resolve=>window.resolveSubmission=resolve)};window.applicationTurnstileReady();document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate('calls'),1);
-    await evaluate('select(0)');await sleep(100);
     await evaluate("resolveSubmission({ok:true,json:async()=>({reference:'test-reference'})})");await sleep(100);
-    assert.equal(await evaluate("document.querySelector('#heading').textContent"),'Who we are');
-    assert.equal(await evaluate("document.querySelector('.application-reference')===null"),true);
-    await evaluate('select(2)');await sleep(100);
-    assert.equal(await evaluate("document.querySelector('.application-reference').textContent"),'test-reference');
+    assert.equal(await evaluate("document.querySelector('.application-reference').textContent"),'test-reference');await evaluate("document.querySelector('.application-return').click()");await sleep(300);assert.equal(await evaluate('active'),2);assert.equal(await evaluate("getComputedStyle(document.querySelector('.intro')).display"),'none');
   }
-  assert.deepEqual(runtimeErrors,[]);console.log('PASS: 320/390/768/1440px, validation, form navigation, preserved answers, input arrow keys, verification configuration, error recovery, idempotent retries, and persistent confirmation.');
+  assert.deepEqual(runtimeErrors,[]);console.log('PASS: 320/390/768/1440px, validation, form navigation, preserved step answers, full-page entry/return, input arrow keys, verification configuration, error recovery, idempotent retries, and persistent confirmation.');
   ws.send(JSON.stringify({id:++id,method:'Browser.close'}));ws.close();browser.kill();
 })().catch(error=>{console.error(error);browser.kill();process.exitCode=1;});

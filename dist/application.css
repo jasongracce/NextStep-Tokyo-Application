@@ -1,5 +1,20 @@
-.experience.section-join{align-items:flex-start;overflow:visible}
-.section-join .content{padding-top:160px;padding-bottom:150px}
+.apply-link{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 28px;background:var(--ink);color:var(--paper);text-decoration:none;font:inherit;border:1px solid var(--ink);border-radius:2px}
+.apply-link:hover{background:#2e4057}
+.application-page{--paper:#f5f3ed;--ink:#192b42;--line:#dcded9;margin:0;background:var(--paper);color:var(--ink);font-family:Arial,Helvetica,sans-serif;line-height:1.7}
+.application-page *{box-sizing:border-box}
+.application-page button{font:inherit;color:inherit}
+.application-page a{color:inherit}
+.application-page :focus-visible{outline:2px solid var(--ink);outline-offset:4px}
+.application-header{max-width:1440px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:24px;padding:28px 48px}
+.application-brand{font-size:15px;font-weight:700;text-decoration:none;white-space:nowrap}
+.application-brand span{font-weight:400}
+.application-return{display:inline-flex;align-items:center;min-height:48px;font-size:14px;text-underline-offset:4px}
+.application-main{max-width:656px;margin:40px auto 0;padding:0 24px 80px}
+.application-kicker{font-size:14px;color:#46566b;margin:0 0 12px}
+.application-main h1{font-size:clamp(32px,4vw,44px);line-height:1.15;letter-spacing:-.035em;margin:0 0 20px}
+.application-main h1 span{background:linear-gradient(transparent 68%,#efb1ad 68%,#efb1ad 94%,transparent 94%)}
+.application-introduction{margin:0 0 32px;color:#46566b}
+#application-root{border-top:1px solid var(--line);padding-top:32px}
 .application{max-width:38rem}
 .application h3,.application input,.application textarea{scroll-margin-top:160px}
 .application [hidden]{display:none!important}
@@ -27,4 +42,5 @@
 .application-notice,.application-status{font-size:.875rem;line-height:1.6}
 .application-status{margin-top:16px;overflow-wrap:anywhere}
 .application-reference{display:block;overflow-wrap:anywhere;font-size:.875rem}
-@media(max-width:900px){.section-join .content{padding-top:32px;padding-bottom:calc(120px + env(safe-area-inset-bottom))}.application-actions button{flex:1}.application .choice{padding:8px 0}}
+@media(max-width:900px){.application-actions button{flex:1}.application .choice{padding:8px 0}}
+@media(max-width:600px){.application-header{align-items:flex-start;flex-direction:column;gap:8px;padding:calc(20px + env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) 0 max(24px,env(safe-area-inset-left))}.application-main{margin-top:28px;padding:0 max(24px,env(safe-area-inset-right)) calc(48px + env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left))}.application-main h1{font-size:32px}}

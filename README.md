@@ -2,7 +2,7 @@
 
 A minimal information and team registration website for NextStep Tokyo.
 
-The page includes an animated welcome, three sections, a rotating navigation ring, and scroll progress indicators. Section 2 describes the organizational leader, Marketing team, and Event team. Section 3 contains a three-step membership application backed by a Supabase Edge Function and private Postgres table.
+The page includes an animated welcome, three sections, a rotating navigation ring, and scroll progress indicators. Section 2 describes the organizational leader, Marketing team, and Event team. Section 3 has an Apply button linking to a dedicated full-page, three-step application at `apply.html`, backed by a Supabase Edge Function and private Postgres table.
 
 ## Run locally
 
@@ -24,7 +24,7 @@ If configuring the project manually, choose **Other** for Framework Preset, set 
 
 ## Application behavior
 
-Applicants complete About you, Team interest, and Your motivation, review their details, and consent to recruitment use. They do not need an account. Answers survive section navigation in memory, but not a refresh. A successful submission displays a UUID reference. A request UUID prevents duplicate rows when a failed connection is retried without changing answers. Emails are normalized; repeated applications with the same email are allowed.
+Applicants complete About you, Team interest, and Your motivation, review their details, and consent to recruitment use. They do not need an account. Answers survive form step navigation in memory, but not a refresh or leaving the application page. A Back to NextStep Tokyo link returns directly to the Join section without replaying the welcome. A successful submission displays a UUID reference. A request UUID prevents duplicate rows when a failed connection is retried without changing answers. Emails are normalized; repeated applications with the same email are allowed.
 
 No applicant data is stored in browser storage or logged by the function. There are no email notifications, uploads, applicant tracking, or custom admin pages. Until the public configuration is supplied, the form is available to explore and submission is explicitly unavailable.
 
