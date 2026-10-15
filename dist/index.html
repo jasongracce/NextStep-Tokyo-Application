@@ -156,6 +156,27 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
 }
 @media(max-width:380px){footer>span{display:none}.navigation{width:100%;justify-content:space-between}}
 @media(prefers-reduced-motion:reduce){.welcome-playing .skip-welcome{display:none}.welcome-playing .experience,.welcome-playing footer{visibility:visible}}
+/* One continuous handoff: hold the invitation, lift the curtain, then settle into reading. */
+body.welcome-playing{overflow:hidden}
+.intro{animation:welcomeCurtain 1.3s cubic-bezier(.76,0,.24,1) 4.85s both}
+.intro h1{animation:welcomeDeparture 1.1s cubic-bezier(.22,1,.36,1) 4.85s both}
+.experience{opacity:1;animation:mainArrival 1.35s cubic-bezier(.22,1,.36,1) 4.95s both}
+header,footer{animation:chromeArrival .75s ease 5.5s both}
+.welcome-playing .experience,.welcome-playing footer{visibility:visible}
+.welcome-skipped .experience,.welcome-skipped header,.welcome-skipped footer{animation:none;opacity:1;transform:none;filter:none}
+@keyframes invitationMessage{0%{opacity:0;transform:translateY(10px)}28%,100%{opacity:1;transform:translateY(0)}}
+@keyframes welcomeCurtain{0%{clip-path:inset(0 0 0 0);visibility:visible}100%{clip-path:inset(0 0 100% 0);visibility:hidden}}
+@keyframes welcomeDeparture{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-8vh)}}
+@keyframes mainArrival{0%{opacity:0;transform:translateY(56px);filter:blur(6px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes chromeArrival{from{opacity:0}to{opacity:1}}
+@media(max-width:900px){
+  @keyframes mainArrival{0%{opacity:0;transform:translateY(32px);filter:blur(3px)}100%{opacity:1;transform:translateY(0);filter:blur(0)}}
+}
+@media(prefers-reduced-motion:reduce){
+  body.welcome-playing{overflow:auto}
+  .intro{display:none}
+  .intro h1,.experience,header,footer{animation:none;opacity:1;transform:none;filter:none}
+}
 </style>
 </head>
 <body class="welcome-playing">
@@ -189,7 +210,7 @@ function renderHeading(title){
 function render(){const section=sections[active];document.querySelector('.experience').classList.toggle('section-two',active===1);updateSectionNavigation();document.querySelector('#eyebrow').textContent=section.label;renderHeading(section.title);document.querySelector('#description').textContent=section.description;document.querySelector('#detail').innerHTML=section.detail;document.querySelector('#back').disabled=active===0;document.querySelector('#next').disabled=active===2;ring.style.transform=`rotate(${30-active*30}deg)`;buttons.forEach((button,i)=>{button.classList.toggle('active',i===active);if(i===active)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current')});body.classList.remove('changing')}
 function select(index){if(index<0||index>2||index===active)return;clearTimeout(timer);resetScrollProgress();body.classList.add('changing');active=index;scrollLockedUntil=performance.now()+(reduced?100:500);window.scrollTo({top:0,left:0,behavior:'instant'});timer=setTimeout(()=>{render();window.scrollTo({top:0,left:0,behavior:'instant'});},reduced?0:220)}
 let scrollLockedUntil=0;
-let welcomeReadyAt=reduced?0:performance.now()+6050;
+let welcomeReadyAt=reduced?0:performance.now()+6300;
 const progressRing=document.querySelector('.scroll-progress');
 const progressFill=progressRing.querySelector('.fill');
 let scrollCharge=0,chargeDirection=0,chargeTimer,completionTimer;
@@ -275,12 +296,18 @@ window.addEventListener('touchend',event=>{
   if((direction>0&&!atBottom)||(direction<0&&window.scrollY>2))return;
   chargeScroll(direction,Math.abs(dy));
 },{passive:true});
-let welcomeTimer=setTimeout(()=>document.body.classList.remove('welcome-playing'),6050);
+const welcomeContent=[document.querySelector('.experience'),document.querySelector('footer')];
+welcomeContent.forEach(element=>element.inert=!reduced);
+function finishWelcome(){
+  document.body.classList.remove('welcome-playing');
+  welcomeContent.forEach(element=>element.inert=false);
+}
+let welcomeTimer=setTimeout(finishWelcome,reduced?0:6300);
 document.querySelector('.skip-welcome').addEventListener('click',()=>{
   clearTimeout(welcomeTimer);
   welcomeReadyAt=0;
   resetScrollProgress();
-  document.body.classList.remove('welcome-playing');
+  finishWelcome();
   document.body.classList.add('welcome-skipped');
   const heading=document.querySelector('#heading');
   heading.setAttribute('tabindex','-1');
