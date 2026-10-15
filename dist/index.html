@@ -158,15 +158,17 @@ footer{background:var(--paper);box-shadow:0 30px 0 20px var(--paper),0 -10px 15p
 @media(prefers-reduced-motion:reduce){.welcome-playing .skip-welcome{display:none}.welcome-playing .experience,.welcome-playing footer{visibility:visible}}
 /* Push through the invitation's lettering, then gently settle into the reading plane. */
 body.welcome-playing{overflow:hidden}
-.intro{overflow:hidden;animation:welcomeDissolve 1.8s linear 4.85s both}
-.intro h1{transform-origin:var(--zoom-x,50%) var(--zoom-y,55%);animation:welcomeFlyThrough 1.8s cubic-bezier(.65,0,.2,1) 4.85s both}
-.experience{opacity:1;transform-origin:50% 40svh;animation:mainArrival 2.2s cubic-bezier(.16,1,.3,1) 5.45s both}
-header,footer{animation:chromeArrival .9s ease 6.45s both}
+.intro{overflow:hidden;animation:welcomeDissolve .45s linear 6.5s both}
+.intro h1{animation:none}
+.welcome-vector{display:none}
+.intro.zooming h1{visibility:hidden}
+.intro.zooming .welcome-vector{display:block;position:absolute;inset:0;width:100%;height:100%}
+.experience{opacity:1;transform-origin:50% 40svh;animation:mainArrival 2.2s cubic-bezier(.16,1,.3,1) 6.5s both}
+header,footer{animation:chromeArrival .9s ease 7.3s both}
 .welcome-playing .experience,.welcome-playing footer{visibility:visible}
 .welcome-skipped .experience,.welcome-skipped header,.welcome-skipped footer{animation:none;opacity:1;transform:none;filter:none}
 @keyframes invitationMessage{0%{opacity:0;transform:translateY(10px)}28%,100%{opacity:1;transform:translateY(0)}}
-@keyframes welcomeDissolve{0%,42%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}
-@keyframes welcomeFlyThrough{0%{transform:perspective(900px) translateZ(0);filter:blur(0);opacity:1}55%{opacity:1;filter:blur(.5px)}100%{transform:perspective(900px) translateZ(882px);filter:blur(3px);opacity:0}}
+@keyframes welcomeDissolve{0%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}
 @keyframes mainArrival{0%{opacity:0;transform:scale(.88);filter:blur(8px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
 @keyframes chromeArrival{from{opacity:0}to{opacity:1}}
 @media(max-width:900px){
@@ -210,7 +212,7 @@ function renderHeading(title){
 function render(){const section=sections[active];document.querySelector('.experience').classList.toggle('section-two',active===1);updateSectionNavigation();document.querySelector('#eyebrow').textContent=section.label;renderHeading(section.title);document.querySelector('#description').textContent=section.description;document.querySelector('#detail').innerHTML=section.detail;document.querySelector('#back').disabled=active===0;document.querySelector('#next').disabled=active===2;ring.style.transform=`rotate(${30-active*30}deg)`;buttons.forEach((button,i)=>{button.classList.toggle('active',i===active);if(i===active)button.setAttribute('aria-current','step');else button.removeAttribute('aria-current')});body.classList.remove('changing')}
 function select(index){if(index<0||index>2||index===active)return;clearTimeout(timer);resetScrollProgress();body.classList.add('changing');active=index;scrollLockedUntil=performance.now()+(reduced?100:500);window.scrollTo({top:0,left:0,behavior:'instant'});timer=setTimeout(()=>{render();window.scrollTo({top:0,left:0,behavior:'instant'});},reduced?0:220)}
 let scrollLockedUntil=0;
-let welcomeReadyAt=reduced?0:performance.now()+7650;
+let welcomeReadyAt=reduced?0:performance.now()+8700;
 const progressRing=document.querySelector('.scroll-progress');
 const progressFill=progressRing.querySelector('.fill');
 let scrollCharge=0,chargeDirection=0,chargeTimer,completionTimer;
@@ -302,24 +304,80 @@ function finishWelcome(){
   document.body.classList.remove('welcome-playing');
   welcomeContent.forEach(element=>element.inert=false);
 }
-function setWelcomeZoomOrigin(){
-  const title=document.querySelector('.intro h1');
+let welcomeVector,zoomCamera,zoomFrame;
+const svgNamespace='http://www.w3.org/2000/svg';
+function prepareWelcomeZoom(){
+  if(welcomeVector)return;
+  const invitation=document.querySelector('.invitation');
+  const style=getComputedStyle(invitation),fontSize=parseFloat(style.fontSize);
+  const canvas=document.createElement('canvas'),context=canvas.getContext('2d');
+  context.font=`${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
+  const metrics=context.measureText('o');
+  const baselineOffset=metrics.fontBoundingBoxAscent;
+  // Inspect the font's actual o counter at 4x resolution, then fit the camera inside it.
+  canvas.width=canvas.height=Math.ceil(fontSize*8);
+  context.scale(4,4);context.font=`${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
+  context.fillText('o',fontSize/2,fontSize*1.4);
+  const pixels=context.getImageData(0,0,canvas.width,canvas.height);
+  const cx=Math.round((fontSize/2+(metrics.actualBoundingBoxRight-metrics.actualBoundingBoxLeft)/2)*4);
+  const cy=Math.round((fontSize*1.4-(metrics.actualBoundingBoxAscent-metrics.actualBoundingBoxDescent)/2)*4);
+  const clear=(x,y)=>pixels.data[(y*canvas.width+x)*4+3]<8;
+  let radius=0;
+  for(let r=1;r<fontSize;r++){
+    let empty=true;
+    for(let offset=-r;offset<=r;offset++)if(!clear(cx+offset,cy-r)||!clear(cx+offset,cy+r)||!clear(cx-r,cy+offset)||!clear(cx+r,cy+offset)){empty=false;break;}
+    if(!empty)break;radius=r;
+  }
+  welcomeVector=document.createElementNS(svgNamespace,'svg');
+  welcomeVector.classList.add('welcome-vector');
+  welcomeVector.setAttribute('aria-hidden','true');
+  welcomeVector.setAttribute('preserveAspectRatio','none');
+  const add=(tag,attributes,text)=>{
+    const element=document.createElementNS(svgNamespace,tag);
+    Object.entries(attributes).forEach(([name,value])=>element.setAttribute(name,value));
+    if(text!==undefined)element.textContent=text;
+    welcomeVector.append(element);return element;
+  };
   const word=document.querySelector('.welcome-highlight');
-  const text=word.firstChild;
-  const index=text.textContent.lastIndexOf('o');
-  const range=document.createRange();
-  range.setStart(text,index);range.setEnd(text,index+1);
-  const letter=range.getBoundingClientRect(),bounds=title.getBoundingClientRect();
-  title.style.setProperty('--zoom-x',`${letter.left+letter.width/2-bounds.left}px`);
-  title.style.setProperty('--zoom-y',`${letter.top+letter.height/2-bounds.top}px`);
+  const highlightRange=document.createRange();highlightRange.selectNodeContents(word);
+  for(const rect of highlightRange.getClientRects())add('rect',{x:rect.x,y:rect.y+rect.height*.9-fontSize*.38,width:rect.width,height:fontSize*.38,fill:getComputedStyle(document.documentElement).getPropertyValue('--text-highlight').trim()});
+  const walker=document.createTreeWalker(invitation,NodeFilter.SHOW_TEXT);
+  let node,target;
+  while(node=walker.nextNode()){
+    for(let index=0;index<node.length;index++){
+      const range=document.createRange();range.setStart(node,index);range.setEnd(node,index+1);
+      const rect=range.getBoundingClientRect();
+      if(node.textContent[index].trim())add('text',{x:rect.x,y:rect.y+baselineOffset,'font-family':style.fontFamily,'font-size':fontSize,'font-weight':style.fontWeight,fill:style.color},node.textContent[index]);
+      if(node===word.firstChild&&index===node.length-1)target={x:rect.x+(metrics.actualBoundingBoxRight-metrics.actualBoundingBoxLeft)/2,y:rect.y+baselineOffset-(metrics.actualBoundingBoxAscent-metrics.actualBoundingBoxDescent)/2,width:rect.width};
+    }
+  }
+  // Keep the final camera rectangle well inside the o's enclosed counter.
+  const opening=Math.max(fontSize*.02,radius/4);
+  zoomCamera={width:innerWidth,height:innerHeight,target,finalWidth:Math.min(opening,opening*innerWidth/innerHeight)};
+  document.querySelector('.intro').append(welcomeVector);
+  drawWelcomeZoom(0);
 }
-if(!reduced){
-  setWelcomeZoomOrigin();
-  document.fonts.ready.then(setWelcomeZoomOrigin);
+function drawWelcomeZoom(progress){
+  const camera=zoomCamera;
+  const eased=progress*progress*(3-2*progress);
+  const width=camera.width*Math.pow(camera.finalWidth/camera.width,eased),height=width*camera.height/camera.width;
+  const aim=Math.min(1,progress/.4),center=aim*aim*(3-2*aim);
+  const x=camera.width/2+(camera.target.x-camera.width/2)*center;
+  const y=camera.height/2+(camera.target.y-camera.height/2)*center;
+  welcomeVector.setAttribute('viewBox',`${x-width/2} ${y-height/2} ${width} ${height}`);
+  welcomeVector.querySelectorAll('rect').forEach(rect=>rect.setAttribute('opacity',Math.max(0,1-progress/.5)));
 }
-let welcomeTimer=setTimeout(finishWelcome,reduced?0:7650);
+const zoomTimer=reduced?null:setTimeout(()=>{
+  if(document.body.classList.contains('welcome-skipped'))return;
+  prepareWelcomeZoom();document.querySelector('.intro').classList.add('zooming');
+  const started=performance.now();
+  const tick=now=>{const progress=Math.min(1,(now-started)/1800);drawWelcomeZoom(progress);if(progress<1)zoomFrame=requestAnimationFrame(tick);};
+  zoomFrame=requestAnimationFrame(tick);
+},4850);
+let welcomeTimer=setTimeout(finishWelcome,reduced?0:8700);
 document.querySelector('.skip-welcome').addEventListener('click',()=>{
   clearTimeout(welcomeTimer);
+  clearTimeout(zoomTimer);cancelAnimationFrame(zoomFrame);
   welcomeReadyAt=0;
   resetScrollProgress();
   finishWelcome();
