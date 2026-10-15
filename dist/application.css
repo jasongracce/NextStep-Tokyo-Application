@@ -1,0 +1,30 @@
+.experience.section-join{align-items:flex-start;overflow:visible}
+.section-join .content{padding-top:160px;padding-bottom:150px}
+.application{max-width:38rem}
+.application h3,.application input,.application textarea{scroll-margin-top:160px}
+.application [hidden]{display:none!important}
+.application-progress{font-size:.875rem;color:#46566b;margin:0 0 12px}
+.application h3{font-size:1.4rem;letter-spacing:-.02em;margin:0 0 24px}
+.application label,.application legend{display:block;font-weight:600;margin-bottom:8px}
+.application .field{margin-bottom:24px}
+.application input:not([type=radio]):not([type=checkbox]),.application textarea{display:block;box-sizing:border-box;width:100%;min-height:48px;border:1px solid #89919a;border-radius:2px;padding:12px;background:transparent;color:var(--ink);font:inherit;line-height:1.5}
+.application textarea{resize:vertical;min-height:130px}
+.application input:focus-visible,.application textarea:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.application [aria-invalid=true]{border-color:#a52626!important}
+.application .field-error{color:#a52626;font-size:.875rem;margin:6px 0 0}
+.application fieldset{border:0;padding:0;margin:0 0 24px;min-width:0}
+.application .choice{display:flex;align-items:center;gap:12px;min-height:48px;font-weight:400;margin:0;cursor:pointer}
+.application input[type=radio],.application input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--ink)}
+.application-actions{display:flex;justify-content:space-between;gap:16px;margin-top:28px}
+.application button{min-height:48px;border:1px solid var(--ink);padding:12px 20px;background:transparent;cursor:pointer;border-radius:2px}
+.application button[type=submit]{background:var(--ink);color:var(--paper)}
+.application button:disabled{opacity:.5;cursor:wait}
+.application-review{border-top:1px solid var(--line);margin-top:28px;padding-top:24px}
+.application-review dl{margin:0}
+.application-review dt{font-weight:600;margin-top:12px}
+.application-review dd{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.application-review button{padding:4px 0;border:0;text-decoration:underline;margin-right:24px}
+.application-notice,.application-status{font-size:.875rem;line-height:1.6}
+.application-status{margin-top:16px;overflow-wrap:anywhere}
+.application-reference{display:block;overflow-wrap:anywhere;font-size:.875rem}
+@media(max-width:900px){.section-join .content{padding-top:32px;padding-bottom:calc(120px + env(safe-area-inset-bottom))}.application-actions button{flex:1}.application .choice{padding:8px 0}}

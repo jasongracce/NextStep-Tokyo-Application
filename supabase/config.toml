@@ -1,0 +1,4 @@
+project_id = "nextstep-tokyo"
+
+[functions.submit-application]
+verify_jwt = false
