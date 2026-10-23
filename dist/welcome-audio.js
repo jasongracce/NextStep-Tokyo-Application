@@ -2,7 +2,7 @@
   const Audio = window.AudioContext || window.webkitAudioContext;
   if (!Audio || matchMedia('(prefers-reduced-motion: reduce)').matches || location.hash === '#join') return;
   let context, master, enabled = true;
-  let ready = false;
+  const started=performance.now();
   const played = new Set();
   const sources = new Set();
   const control = document.createElement('button');
@@ -16,21 +16,6 @@
   updateControl();
   control.className = 'sound-toggle';
   document.body.append(control);
-  const startControl=document.createElement('button');
-  startControl.type='button';startControl.className='start-welcome';
-  startControl.textContent='Start welcome';startControl.hidden=true;
-  startControl.addEventListener('click',()=>unlock());
-  document.body.append(startControl);
-  document.body.classList.add('welcome-awaiting-audio');
-  function begin() {
-    if(ready||stopped)return;
-    ready=true;window.welcomeAudio.ready=true;
-    document.body.classList.remove('welcome-awaiting-audio');
-    startControl.remove();
-    play('welcome');
-    window.dispatchEvent(new Event('welcome-audio-ready'));
-  }
-
   function track(source, duration) {
     sources.add(source);
     source.onended = () => { sources.delete(source); source.disconnect(); };
@@ -73,6 +58,22 @@
     track(source, duration);
     setTimeout(() => filter.disconnect(), duration * 1000 + 100);
   }
+  function softBrush() {
+    const duration=.65,now=context.currentTime;
+    const buffer=context.createBuffer(1,Math.ceil(context.sampleRate*duration),context.sampleRate);
+    const samples=buffer.getChannelData(0);let smooth=0;
+    for(let i=0;i<samples.length;i++){
+      smooth=.7*smooth+.3*(Math.random()*2-1);
+      samples[i]=smooth*Math.pow(Math.sin(Math.PI*i/samples.length),1.3);
+    }
+    const source=context.createBufferSource(),low=context.createBiquadFilter(),high=context.createBiquadFilter(),gain=context.createGain(),pan=context.createStereoPanner();
+    source.buffer=buffer;high.type='highpass';high.frequency.value=300;
+    low.type='lowpass';low.frequency.setValueAtTime(2000,now);
+    low.frequency.exponentialRampToValueAtTime(1000,now+duration);low.Q.value=.4;
+    gain.gain.value=.65;pan.pan.setValueAtTime(-.2,now);pan.pan.linearRampToValueAtTime(.2,now+duration);
+    source.connect(high);high.connect(low);low.connect(gain);gain.connect(pan);pan.connect(master);track(source,duration);
+    setTimeout(()=>{high.disconnect();low.disconnect();gain.disconnect();pan.disconnect();},duration*1000+100);
+  }
   function cinematicZoom() {
     const now=context.currentTime,duration=2.6;
     const bus=context.createBiquadFilter();
@@ -112,7 +113,7 @@
       tone(440, 330, 1.4, .09);
       noise(1.7, 700, 2400, .18);
     } else if (cue === 'draw') {
-      noise(.65, 3200, 1600, .7, true);
+      softBrush();
     } else if (cue === 'zoom') {
       cinematicZoom();
     }
@@ -131,19 +132,17 @@
         master.connect(compressor);compressor.connect(context.destination);
       }
       if (context.state !== 'running') {
-        startControl.hidden=false;
         await context.resume();
       }
       if (stopped || !enabled) return;
-      begin();
-    } catch { if(!stopped)startControl.hidden=false; }
+      if(performance.now()-started<2300)play('welcome');
+    } catch { /* Keep the animation running; retry audio on a later interaction. */ }
   }
   control.addEventListener('click', () => {
     enabled = !enabled;
     if (master && context.state !== 'closed') master.gain.setTargetAtTime(enabled ? .9 : 0, context.currentTime, .025);
     updateControl();
     if (enabled) unlock();
-    else begin();
   });
   function onInteraction(event) {
     if (!control.contains(event.target)&&!event.target.closest?.('.skip-welcome')) unlock();
@@ -152,7 +151,6 @@
   document.addEventListener('keydown', onInteraction);
   document.querySelector('.welcome-highlight').addEventListener('animationstart', () => play('draw'));
   window.welcomeAudio = {
-    ready:false,
     play,
     stop() {
       stopped = true;
@@ -160,8 +158,7 @@
       document.removeEventListener('pointerdown', onInteraction);
       document.removeEventListener('keydown', onInteraction);
       for (const source of sources) { try { source.stop(); } catch {} }
-      control.remove();startControl.remove();
-      document.body.classList.remove('welcome-awaiting-audio');
+      control.remove();
       if (context && context.state !== 'closed') context.close().catch(() => {});
     }
   };

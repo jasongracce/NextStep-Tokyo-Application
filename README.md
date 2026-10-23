@@ -71,8 +71,8 @@ Before production, test real multipart uploads through the deployed function, pr
 
 ## Welcome audio
 
-Sound defaults on, with a minimal mute control. If the browser blocks autoplay, the welcome animation waits for Start welcome (or another user interaction), keeping the opening sound and highlight stroke synchronized. Muting allows the intro to continue silently; skipping stops all audio. Reduced-motion and direct Join visits bypass the intro audio. A compressor and sustained envelopes keep the three cues audible without clipping.
+Sound defaults on, with a minimal mute control. The welcome starts immediately without a start button, even if the browser blocks autoplay. Audio is retried on interaction, with no late replay of the opening cue. The highlight uses a soft filtered brush swish. Muting silences the effects; skipping stops all audio. Reduced-motion and direct Join visits bypass the intro audio. A compressor and sustained envelopes keep the three cues audible without clipping.
 
-Run `node tests/welcome-audio-browser.cjs` to check blocked/allowed autoplay, all three cues using measured audio levels, mute, and skip. This test uses real Web Audio in Edge with simulated autoplay blocking; listening on target devices remains useful for judging tone and loudness.
+Run `node tests/welcome-audio-browser.cjs` to check immediate animation with blocked/allowed audio, all three cues using measured audio levels, mute, skip, and late interaction. This test uses real Web Audio in Edge with simulated autoplay blocking; listening on target devices remains useful for judging tone and loudness.
 
 The zoom cue uses a warm major chord swell, a restrained air layer, and a short room tail in place of the earlier pitch sweep.

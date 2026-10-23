@@ -19,8 +19,9 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=900});
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
     await send('Page.navigate',{url:'file:///'+path.resolve(__dirname,'../dist/index.html').replaceAll('\\','/')});await sleep(350);
-    assert.equal(await evaluate("document.querySelector('.application')===null"),true);await evaluate('select(2)');await sleep(100);assert.equal(await evaluate("document.querySelector('.apply-link').textContent"),'Apply');await evaluate("document.querySelector('.apply-link').click()");await waitFor("!!document.querySelector('.application-progress')");
+    assert.equal(await evaluate("document.querySelector('.application')===null"),true);await evaluate('select(2)');await sleep(100);assert.equal(await evaluate("document.querySelector('.apply-link').textContent"),'Apply');await evaluate("document.querySelector('.apply-link').click()");await waitFor("!!document.querySelector('.application-progress')");await evaluate("window.APPLICATION_CONFIG.endpoint=''");
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 4');
+    assert.equal(await evaluate("document.querySelector('[name=preferred_role][value=undecided]')"),null);
     await evaluate("document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate('document.activeElement.name'),'full_name');
     await evaluate(`(()=>{const f=document.querySelector('.application');for(const [name,value] of Object.entries({full_name:'Jane Student',email:'jane@example.com',school:'Tokyo school',study_year:'Year 2'})){f.elements.namedItem(name).value=value;f.elements.namedItem(name).dispatchEvent(new Event('input',{bubbles:true}));}f.requestSubmit();})()`);

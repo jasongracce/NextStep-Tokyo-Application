@@ -1,5 +1,5 @@
 (() => {
-  const roles = {graphics:'Graphics',video_photo:'Video and photography',events:'Event planning and logistics',undecided:'Not sure yet'};
+  const roles = {graphics:'Graphics',video_photo:'Video and photography',events:'Event planning and logistics'};
   const steps = [['full_name','email','school','study_year'],['preferred_role','experience'],['motivation','work_description','portfolio_url','work_files'],['consent']];
   const limits = {full_name:100,email:254,school:200,study_year:80,motivation:2000,experience:2000,work_description:1000,portfolio_url:2000};
   const labels = {full_name:'Full name',email:'Email',school:'School / university',study_year:'Year of study',motivation:'Why would you like to join?',work_description:'About your past work (optional)',portfolio_url:'Portfolio or video link (optional)',experience:'Relevant experience (optional)'};

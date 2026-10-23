@@ -384,8 +384,7 @@ function startWelcomeMotion(){
 },4850);
   welcomeTimer=setTimeout(finishWelcome,reduced?0:8700);
 }
-if(!window.welcomeAudio||window.welcomeAudio.ready)startWelcomeMotion();
-else {welcomeReadyAt=Infinity;window.addEventListener('welcome-audio-ready',startWelcomeMotion,{once:true});}
+startWelcomeMotion();
 document.querySelector('.skip-welcome').addEventListener('click',()=>{
   clearTimeout(welcomeTimer);
   clearTimeout(zoomTimer);cancelAnimationFrame(zoomFrame);

@@ -29,7 +29,7 @@ const browser=spawn(executable,['--headless','--autoplay-policy=no-user-gesture-
         const analyser=this.context.createAnalyser();analyser.fftSize=2048;
         connect.call(this,analyser);connect.call(analyser,destination);
         const data=new Float32Array(analyser.fftSize);
-        setInterval(()=>{if(!window.welcomeAudio?.ready)return;analyser.getFloatTimeDomainData(data);let sum=0,peak=0;for(const n of data){sum+=n*n;peak=Math.max(peak,Math.abs(n));}window.levels.push({time:this.context.currentTime,rms:Math.sqrt(sum/data.length),peak});},20);
+        setInterval(()=>{if(!window.welcomeAudio||this.context.state!=='running')return;analyser.getFloatTimeDomainData(data);let sum=0,peak=0;for(const n of data){sum+=n*n;peak=Math.max(peak,Math.abs(n));}window.levels.push({time:this.context.currentTime,rms:Math.sqrt(sum/data.length),peak});},20);
         return destination;
       }
       return connect.call(this,destination,...rest);
@@ -40,20 +40,19 @@ const browser=spawn(executable,['--headless','--autoplay-policy=no-user-gesture-
     }
   `});
   const url='file:///'+path.resolve(__dirname,'../dist/index.html').replaceAll('\\','/');
-  await send('Page.navigate',{url});await sleep(500);
-  assert.equal(await evaluate("document.body.classList.contains('welcome-awaiting-audio')"),true);
-  assert.equal(await evaluate("getComputedStyle(document.querySelector('.welcome-highlight')).animationPlayState"),'paused');
+  const waitFor=async expression=>{for(let i=0;i<100;i++){try{if(await evaluate(expression))return;}catch{}await sleep(100);}throw Error(`Timed out waiting for ${expression}`);};
+  await send('Page.navigate',{url});await waitFor('!!window.testAudio');await sleep(500);
+  assert.equal(await evaluate("document.querySelector('.start-welcome')"),null);
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('.welcome-highlight')).animationPlayState"),'running');
+  assert.ok(await evaluate("document.querySelector('.welcome').getAnimations()[0].currentTime>0"));
   assert.equal(await evaluate('soundStarts.length'),0);
-  assert.equal(await evaluate("document.querySelector('.start-welcome').hidden"),false);
-  await evaluate("window.allowAudio=true;document.querySelector('.start-welcome').click()");
-  for(let i=0;i<50;i++){if(await evaluate('welcomeAudio.ready'))break;await sleep(100);}
-  assert.equal(await evaluate('welcomeAudio.ready'),true,JSON.stringify(await evaluate('({state:testAudio.state,errors:window.soundStarts})')));
-  assert.equal(await evaluate("document.body.classList.contains('welcome-awaiting-audio')"),false);
-  assert.equal(await evaluate('soundStarts.length'),4);
-  await sleep(3700);
-  assert.equal(await evaluate('soundStarts.length'),5,'Highlight must play its drawing sound');
-  await sleep(3000);
-  assert.equal(await evaluate('soundStarts.length'),9,'Zoom must play its chord and air layers');
+  await waitFor("document.body.classList.contains('welcome-finished')");
+  assert.equal(await evaluate('testAudio.state'),'closed','Blocked audio must not prevent intro completion');
+  await send('Page.navigate',{url:url+'?audioAllowed'});
+  await waitFor("window.soundStarts?.length===4");
+  assert.equal(await evaluate("document.querySelector('.start-welcome')"),null);
+  await waitFor('soundStarts.length===5');
+  await waitFor('soundStarts.length===9');await sleep(1400);
   const measurements=await evaluate(`[
     [soundStarts[0]+.15,soundStarts[0]+1.1],[soundStarts[4]+.04,soundStarts[4]+.5],[soundStarts[5]+.5,soundStarts[5]+1.3]
   ].map(([from,to])=>{const samples=levels.filter(n=>n.time>=from&&n.time<=to);return {rms:Math.max(...samples.map(n=>n.rms)),peak:Math.max(...samples.map(n=>n.peak))};})`);
@@ -62,23 +61,14 @@ const browser=spawn(executable,['--headless','--autoplay-policy=no-user-gesture-
   assert.equal(await evaluate("document.querySelector('.sound-toggle').getAttribute('aria-label')"),'Unmute sound');
   await evaluate("document.querySelector('.skip-welcome').click()");
   assert.equal(await evaluate('testAudio.state'),'closed');
-  assert.equal(await evaluate("document.querySelector('.start-welcome')"),null);
-  await send('Page.navigate',{url});await sleep(300);
-  await evaluate("document.querySelector('.sound-toggle').click()");await sleep(100);
-  assert.equal(await evaluate('welcomeAudio.ready'),true,'Muted welcome should continue without waiting for audio');
-  assert.equal(await evaluate('soundStarts.length'),0);
+  await send('Page.navigate',{url});await waitFor('!!window.testAudio');await sleep(4000);
+  await evaluate("window.allowAudio=true;document.dispatchEvent(new Event('pointerdown'))");
+  await waitFor("testAudio.state==='running'");
+  assert.equal(await evaluate('soundStarts.length'),0,'Late interaction must not replay earlier sounds');
+  await waitFor('soundStarts.length===4');
   await evaluate("document.querySelector('.skip-welcome').click()");
-  await send('Page.navigate',{url});await sleep(300);
-  await evaluate("document.querySelector('.skip-welcome').click()");
-  assert.equal(await evaluate("document.body.classList.contains('welcome-awaiting-audio')"),false);
   assert.equal(await evaluate('testAudio.state'),'closed');
-  await send('Page.navigate',{url:url+'?audioAllowed'});
-  for(let i=0;i<50;i++){if(await evaluate('window.welcomeAudio?.ready'))break;await sleep(100);}
-  assert.equal(await evaluate('welcomeAudio.ready'),true,'Allowed autoplay should start immediately');
-  assert.equal(await evaluate('soundStarts.length'),4);
-  assert.equal(await evaluate("document.querySelector('.start-welcome')"),null);
-  await evaluate("document.querySelector('.skip-welcome').click()");
   assert.deepEqual(runtimeErrors,[]);
-  console.log('PASS: blocked autoplay waits; welcome, drawing and zoom emit audible unclipped audio; mute and skip work. Measured levels:',JSON.stringify(measurements));
+  console.log('PASS: welcome starts immediately and completes with blocked audio; no start button; audible unclipped cues; mute, skip, and no late replay. Measured levels:',JSON.stringify(measurements));
   ws.send(JSON.stringify({id:++id,method:'Browser.close'}));ws.close();browser.kill();
 })().catch(error=>{console.error(error);browser.kill();process.exitCode=1;});
