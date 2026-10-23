@@ -371,7 +371,10 @@ function drawWelcomeZoom(progress){
   welcomeVector.querySelectorAll('rect').forEach(rect=>rect.setAttribute('opacity',Math.max(0,1-progress/.5)));
   if(progress>=1)document.querySelector('.intro').classList.add('zoom-complete');
 }
-const zoomTimer=reduced?null:setTimeout(()=>{
+let zoomTimer,welcomeTimer;
+function startWelcomeMotion(){
+  welcomeReadyAt=reduced?0:performance.now()+8700;
+  zoomTimer=reduced?null:setTimeout(()=>{
   if(document.body.classList.contains('welcome-skipped'))return;
   prepareWelcomeZoom();document.querySelector('.intro').classList.add('zooming');
   window.welcomeAudio?.play('zoom');
@@ -379,7 +382,10 @@ const zoomTimer=reduced?null:setTimeout(()=>{
   const tick=now=>{const progress=Math.min(1,(now-started)/1800);drawWelcomeZoom(progress);if(progress<1)zoomFrame=requestAnimationFrame(tick);};
   zoomFrame=requestAnimationFrame(tick);
 },4850);
-let welcomeTimer=setTimeout(finishWelcome,reduced?0:8700);
+  welcomeTimer=setTimeout(finishWelcome,reduced?0:8700);
+}
+if(!window.welcomeAudio||window.welcomeAudio.ready)startWelcomeMotion();
+else {welcomeReadyAt=Infinity;window.addEventListener('welcome-audio-ready',startWelcomeMotion,{once:true});}
 document.querySelector('.skip-welcome').addEventListener('click',()=>{
   clearTimeout(welcomeTimer);
   clearTimeout(zoomTimer);cancelAnimationFrame(zoomFrame);

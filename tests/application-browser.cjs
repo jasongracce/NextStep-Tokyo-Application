@@ -13,12 +13,13 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
   ws.addEventListener('message',event=>{const message=JSON.parse(event.data);if(message.method==='Runtime.exceptionThrown')runtimeErrors.push(message.params.exceptionDetails.text);if(pending.has(message.id)){pending.get(message.id)(message);pending.delete(message.id);}});
   const send=(method,params={})=>new Promise((resolve,reject)=>{const key=++id;const timeout=setTimeout(()=>{pending.delete(key);reject(Error(`Timed out: ${method}`));},15000);pending.set(key,message=>{clearTimeout(timeout);if(message.error)reject(Error(JSON.stringify(message.error)));else resolve(message.result);});ws.send(JSON.stringify({id:key,method,params}));});
   const evaluate=async expression=>{const result=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value;};
+  const waitFor=async expression=>{for(let i=0;i<100;i++){try{if(await evaluate(expression))return;}catch{}await sleep(100);}throw Error(`Timed out waiting for ${expression}`);};
   await send('Runtime.enable');await send('Page.enable');
   for(const width of [320,390,768,1440]){
     await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<=900});
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
     await send('Page.navigate',{url:'file:///'+path.resolve(__dirname,'../dist/index.html').replaceAll('\\','/')});await sleep(350);
-    assert.equal(await evaluate("document.querySelector('.application')===null"),true);await evaluate('select(2)');await sleep(100);assert.equal(await evaluate("document.querySelector('.apply-link').textContent"),'Apply');await evaluate("document.querySelector('.apply-link').click()");await sleep(300);
+    assert.equal(await evaluate("document.querySelector('.application')===null"),true);await evaluate('select(2)');await sleep(100);assert.equal(await evaluate("document.querySelector('.apply-link').textContent"),'Apply');await evaluate("document.querySelector('.apply-link').click()");await waitFor("!!document.querySelector('.application-progress')");
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 4');
     await evaluate("document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate('document.activeElement.name'),'full_name');
@@ -56,8 +57,8 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     assert.match(await evaluate("document.querySelector('.application-status').textContent"),/has not been sent/);
     assert.equal(await evaluate("document.querySelector('.application-reference')"),null);
     await evaluate("document.querySelector('[name=consent]').click()");
-    // Simulate configured verification and endpoint; no live service or applicant data.
-    await evaluate(`(()=>{window.APPLICATION_CONFIG.endpoint='https://test.invalid';window.APPLICATION_CONFIG.turnstileSiteKey='test';window.turnstile={render:(element,options)=>{options.callback('verified');return 1;},remove:()=>{}};window.applicationTurnstileReady();document.querySelector('[name=motivation]').value='I would like to help.';document.querySelector('[name=consent]').click();document.querySelector('[data-edit="0"]').click();document.querySelector('[name=full_name]').focus();document.querySelector('[name=full_name]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));})()`);
+    // Simulate configured endpoint only; no live service or applicant data.
+    await evaluate(`(()=>{window.APPLICATION_CONFIG.endpoint='https://test.invalid';document.querySelector('[name=motivation]').value='I would like to help.';document.querySelector('[name=consent]').click();document.querySelector('[data-edit="0"]').click();document.querySelector('[name=full_name]').focus();document.querySelector('[name=full_name]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));})()`);
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 4');
     await evaluate("document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
     await evaluate("document.querySelector('.application').requestSubmit()");
@@ -66,14 +67,16 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     if(width===390||width===1440){await evaluate('window.scrollTo(0,0)');const shot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(os.tmpdir(),`nextstep-form-${width}.png`),Buffer.from(shot.data,'base64'));}
     await evaluate(`window.sent=[];window.fetch=async(url,options)=>{window.sent.push(JSON.parse(options.body instanceof FormData?options.body.get('application'):options.body));window.uploaded=options.body instanceof FormData?options.body.getAll('files').map(file=>file.name):[];throw Error('offline');};document.querySelector('.application').requestSubmit()`);await sleep(100);
     assert.match(await evaluate("document.querySelector('.application-status').textContent"),/could not confirm/);
-    await evaluate("window.applicationTurnstileReady();document.querySelector('.application').requestSubmit()");await sleep(100);
+    await evaluate("document.querySelector('.application').requestSubmit()");await sleep(100);
     assert.deepEqual(await evaluate('uploaded'),['sample.pdf']);
+    assert.equal(await evaluate("document.querySelector('script[src*=turnstile]')"),null);
+    assert.equal(await evaluate("'turnstile_token' in sent[0]"),false);
     assert.equal(await evaluate('sent.length'),2);assert.equal(await evaluate('sent[0].request_id===sent[1].request_id'),true);
-    await evaluate("window.calls=0;window.fetch=()=>{calls++;return new Promise(resolve=>window.resolveSubmission=resolve)};window.applicationTurnstileReady();document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
+    await evaluate("window.calls=0;window.fetch=()=>{calls++;return new Promise(resolve=>window.resolveSubmission=resolve)};document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate('calls'),1);
     await evaluate("resolveSubmission({ok:true,json:async()=>({reference:'test-reference'})})");await sleep(100);
     assert.equal(await evaluate("document.querySelector('.application-reference').textContent"),'test-reference');await evaluate("document.querySelector('.application-return').click()");await sleep(300);assert.equal(await evaluate('active'),2);assert.equal(await evaluate("getComputedStyle(document.querySelector('.intro')).display"),'none');
   }
-  assert.deepEqual(runtimeErrors,[]);console.log('PASS: 320/390/768/1440px, validation, form navigation, preserved step answers, full-page entry/return, input arrow keys, verification configuration, error recovery, idempotent retries, and persistent confirmation.');
+  assert.deepEqual(runtimeErrors,[]);console.log('PASS: 320/390/768/1440px, validation, form navigation, preserved step answers, full-page entry/return, input arrow keys, endpoint-only configuration, error recovery, idempotent retries, and persistent confirmation.');
   ws.send(JSON.stringify({id:++id,method:'Browser.close'}));ws.close();browser.kill();
 })().catch(error=>{console.error(error);browser.kill();process.exitCode=1;});

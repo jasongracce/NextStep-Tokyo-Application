@@ -7,7 +7,7 @@
   let files = [];
   const state = {step:0,values:{},busy:false,reference:null,requestId:null,errors:{},message:''};
   const config = window.APPLICATION_CONFIG || {};
-  let widget = null, token = '', host;
+  let host;
   const form = document.createElement('form');
   form.className = 'application'; form.noValidate = true;
   const field = (name, multiline=false) => `<div class="field"><label for="app-${name}">${labels[name]}</label>${multiline?`<textarea id="app-${name}" name="${name}" maxlength="${limits[name]}" ${name==='motivation'?'required':''}></textarea>`:`<input id="app-${name}" name="${name}" type="${name==='email'?'email':'text'}" maxlength="${limits[name]}" autocomplete="${name==='full_name'?'name':name==='email'?'email':'off'}" required>`}<p class="field-error" id="error-${name}" hidden></p></div>`;
@@ -15,7 +15,7 @@
     <section data-step="0" aria-labelledby="app-title-0"><h3 id="app-title-0" tabindex="-1">About you</h3>${steps[0].map(n=>field(n)).join('')}</section>
     <section data-step="1" aria-labelledby="app-title-1"><h3 id="app-title-1" tabindex="-1">Team interest</h3><fieldset><legend>Preferred role</legend>${Object.entries(roles).map(([value,label])=>`<label class="choice"><input type="radio" name="preferred_role" value="${value}" required>${label}</label>`).join('')}<p class="field-error" id="error-preferred_role" hidden></p></fieldset>${field('experience',true)}</section>
     <section data-step="2" aria-labelledby="app-title-2"><h3 id="app-title-2" tabindex="-1">Your motivation</h3>${field('motivation',true)}<fieldset class="past-work" hidden><legend>Past work ? optional</legend><p>Share something you?ve created. You can leave this section blank.</p>${field('work_description',true)}${field('portfolio_url')}<div class="field"><label for="app-work_files">Attach past work (optional)</label><input id="app-work_files" name="work_files" type="file" multiple accept=".jpg,.jpeg,.png,.webp,.pdf" aria-describedby="work-help"><p id="work-help">Up to 3 JPG, PNG, WebP or PDF files, 10 MB each. For videos, share a link above.</p><ul class="work-file-list"></ul><p class="field-error" id="error-work_files" hidden></p></div></fieldset></section>
-    <section data-step="3" aria-labelledby="app-title-3"><h3 id="app-title-3" tabindex="-1">Review your answers</h3><div class="application-review"><dl></dl><button type="button" data-edit="0">Edit about you</button><button type="button" data-edit="1">Edit team interest</button><button type="button" data-edit="2">Edit motivation</button></div><p class="application-notice">NextStep Tokyo will use your answers and contact details to review your application and contact you about recruitment. Only authorized organizers will access your application.</p><label class="choice"><input type="checkbox" name="consent" required><span>I agree to this use of my information.</span></label><p class="field-error" id="error-consent" hidden></p><div class="application-verification"></div></section>
+    <section data-step="3" aria-labelledby="app-title-3"><h3 id="app-title-3" tabindex="-1">Review your answers</h3><div class="application-review"><dl></dl><button type="button" data-edit="0">Edit about you</button><button type="button" data-edit="1">Edit team interest</button><button type="button" data-edit="2">Edit motivation</button></div><p class="application-notice">NextStep Tokyo will use your answers and contact details to review your application and contact you about recruitment. Only authorized organizers will access your application.</p><label class="choice"><input type="checkbox" name="consent" required><span>I agree to this use of my information.</span></label><p class="field-error" id="error-consent" hidden></p></section>
     <div class="application-status" role="status" aria-live="polite"></div><div class="application-actions"><button type="button" data-back>Back</button><button type="submit">Continue →</button></div>`;
   form.elements.namedItem('portfolio_url').required = false;
   form.elements.namedItem('portfolio_url').type = 'url';
@@ -57,7 +57,6 @@
   function show(focus=false) {
     if(state.reference) {
       if(!host)return;
-      releaseWidget();
       host.replaceChildren();
       const heading=document.createElement('h3'); heading.textContent='Application received'; heading.tabIndex=-1;
       const copy=document.createElement('p'); copy.textContent='Thank you for taking your next step with us. Keep your application reference for your records.';
@@ -72,7 +71,7 @@
     form.querySelectorAll('button').forEach(button=>button.disabled=state.busy);
     form.querySelectorAll('input,textarea').forEach(input=>input.disabled=state.busy);
     form.setAttribute('aria-busy',String(state.busy));
-    const configured=!!(config.endpoint&&config.turnstileSiteKey);
+    const configured=!!config.endpoint;
     form.querySelector('.application-status').textContent=state.message||(!configured?'Applications are not open yet. You can explore the form, but submissions are currently unavailable.':'');
     const dl=form.querySelector('dl'); dl.replaceChildren();
     for(const name of [...steps[0],'preferred_role','experience','motivation']) {
@@ -85,15 +84,8 @@
         dt.textContent=labels[name]||'Attached past work';dd.textContent=name==='work_files'?files.map(file=>file.name).join(', ')||'None':state.values[name]||'?';dl.append(dt,dd);
       }
     }
-    errors(); ensureWidget(); if(focus) form.querySelector(`#app-title-${state.step}`).focus();
+    errors(); if(focus) form.querySelector(`#app-title-${state.step}`).focus();
   }
-  function releaseWidget(){if(widget!==null&&window.turnstile) window.turnstile.remove(widget); widget=null;token='';}
-  function ensureWidget(){
-    if(state.step!==3||!config.turnstileSiteKey||!window.turnstile||widget!==null||!form.isConnected)return;
-    widget=window.turnstile.render(form.querySelector('.application-verification'),{sitekey:config.turnstileSiteKey,action:'application',callback:value=>{token=value;},'expired-callback':()=>{token='';},'error-callback':()=>{token='';state.message='Verification could not load. Check your connection and try again.';show();}});
-  }
-  window.applicationTurnstileReady=ensureWidget;
-  if(config.turnstileSiteKey){const script=document.createElement('script');script.src='https://challenges.cloudflare.com/turnstile/v0/api.js?onload=applicationTurnstileReady&render=explicit';script.async=true;script.onerror=()=>{state.message='Verification could not load. Please try again later.';show();};document.head.append(script);}
   form.addEventListener('change',event=>{
     if(event.target.name!=='work_files')return;
     files=[...files,...event.target.files];event.target.value='';state.requestId=null;
@@ -109,12 +101,11 @@
     event.preventDefault();if(state.busy)return;collect();state.errors=validate(state.step===3?steps.flat():steps[state.step]);
     if(Object.keys(state.errors).length){const first=Object.keys(state.errors)[0];state.step=steps.findIndex(names=>names.includes(first));show();form.querySelector(`[name="${first}"]`).focus();return;}
     if(state.step<3){state.step++;state.message='';show(true);return;}
-    if(!config.endpoint||!config.turnstileSiteKey){state.message='Your application has not been sent. Submissions need to be connected before we can receive your answers. Please try again once applications are open.';show();return;}
-    if(!token){state.message='Please complete the verification before submitting.';show();return;}
+    if(!config.endpoint){state.message='Your application has not been sent. Submissions need to be connected before we can receive your answers. Please try again once applications are open.';show();return;}
     state.busy=true;state.message='';state.requestId ||= crypto.randomUUID();show();
     const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),120000);
     try{
-      const payload={...state.values,work_description:creative()?state.values.work_description:'',portfolio_url:creative()?state.values.portfolio_url:'',request_id:state.requestId,consent_version:'recruitment-v1',turnstile_token:token};
+      const payload={...state.values,work_description:creative()?state.values.work_description:'',portfolio_url:creative()?state.values.portfolio_url:'',request_id:state.requestId,consent_version:'recruitment-v1'};
       let body=JSON.stringify(payload),headers={'Content-Type':'application/json'};
       if(creative()&&files.length){
         body=new FormData();body.append('application',JSON.stringify(payload));files.forEach(file=>body.append('files',file));headers={};
@@ -123,10 +114,10 @@
       const response=await fetch(config.endpoint,{method:'POST',headers,signal:controller.signal,body});
       const result=await response.json();
       if(response.ok&&typeof result.reference==='string')state.reference=result.reference;
-      else {state.errors=result.errors||{};state.message=response.status===403?'Verification expired or failed. Please verify and try again.':response.status===400?'Check the highlighted fields.':'We could not submit your application. Please try again.';
+      else {state.errors=result.errors||{};state.message=response.status===403?'This website is not authorized to submit applications. Please contact NextStep Tokyo.':response.status===400?'Check the highlighted fields.':'We could not submit your application. Please try again.';
         const first=Object.keys(state.errors).find(name=>steps.flat().includes(name));if(first)state.step=steps.findIndex(names=>names.includes(first));}
     }catch{state.message='We could not confirm your submission. Check your connection and try again. Your answers are still here.';}
-    finally{clearTimeout(timeout);state.busy=false;releaseWidget();show(true);}
+    finally{clearTimeout(timeout);state.busy=false;show(true);}
   });
-  window.applicationForm={mount(target){host=target;if(!state.reference)target.append(form);show();},detach(){releaseWidget();form.remove();host=null;}};
+  window.applicationForm={mount(target){host=target;if(!state.reference)target.append(form);show();},detach(){form.remove();host=null;}};
 })();

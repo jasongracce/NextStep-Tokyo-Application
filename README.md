@@ -28,16 +28,15 @@ Applicants complete About you, Team interest, and Your motivation, then preview 
 
 No applicant data is stored in browser storage or logged by the function. There are no email notifications, applicant tracking, or custom admin pages. Graphics and Video/Photography applicants can optionally add a past-work description, portfolio/video link, and up to three JPG, PNG, WebP or PDF attachments (10 MiB each). Files stay in memory until submission; other roles exclude past work from submission. Until the public configuration is supplied, the form is available to explore and submission is explicitly unavailable.
 
-## Connect Supabase and Turnstile
+## Connect Supabase
 
-1. Create or select a Supabase project. Install the Supabase CLI and authenticate using `supabase login`. From this repository run `supabase link --project-ref YOUR_PROJECT_REF`, then `supabase db push`. This applies the migration in `supabase/migrations`.
-2. Create a Cloudflare Turnstile widget and allow your production hostname and any specific preview/local hostnames you will test. Do not use production secrets with Cloudflare test site keys.
-3. Set function secrets through the Supabase dashboard or CLI: `TURNSTILE_SECRET_KEY` and `ALLOWED_ORIGINS`. The latter is a comma-separated list of exact origins without trailing slashes, for example `https://your-site.vercel.app,http://localhost:3000`. Add each preview origin explicitly; wildcards are not supported. The function also checks that Turnstile's verified hostname matches the request origin and its action is `application`.
-4. Deploy with `supabase functions deploy submit-application`. `supabase/config.toml` disables JWT verification for this public endpoint; validation and Turnstile are enforced inside the handler. Supabase supplies `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to the hosted function. Never copy the service role key into the website.
-5. In `dist/application-config.js`, set `endpoint` to `https://YOUR_PROJECT_REF.supabase.co/functions/v1/submit-application` and `turnstileSiteKey` to the widget's public site key. These are public values, not secrets. Deploy/redeploy the static site to Vercel.
-6. Submit a test application from the deployed origin. Confirm exactly one row appears, repeat a request with the same request UUID, and confirm the same reference is returned. Check an invalid/expired verification produces no row. Remove test records before opening recruitment.
+1. Create or select a Supabase project. From this repository use `supabase login`, `supabase link --project-ref YOUR_PROJECT_REF`, and `supabase db push` to apply the database and private upload bucket migrations.
+2. In Supabase Edge Function secrets, set `ALLOWED_ORIGINS` to a comma-separated list of exact website origins without trailing slashes, for example `https://your-site.vercel.app,http://localhost:3000`. Add preview origins explicitly; wildcards are not supported.
+3. Deploy with `supabase functions deploy submit-application`. JWT verification is disabled for this public application endpoint. Supabase provides `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` to hosted functions. Never copy the service role key into the website.
+4. In `dist/application-config.js`, set `endpoint` to `https://YOUR_PROJECT_REF.supabase.co/functions/v1/submit-application`, then redeploy the static website. This public URL is the only frontend dependency configuration. Turnstile and CAPTCHA tokens are no longer used; redeploy the backend as well as the website when upgrading from the previous version.
+5. Submit a test application from your deployed origin, confirm one row and private attachments appear, and confirm unchanged retries return the same reference. Remove test records before recruitment opens.
 
-The server checks field types, lengths, role values, consent version, request UUID, origin, JSON content type, and a 32 KiB body limit. Database constraints provide a second validation layer. Client-supplied review status, timestamps, and notes are ignored. CORS is a browser restriction; Turnstile supplies the submission verification. Secrets and applicant payloads should never be committed or pasted into logs.
+The server validates fields, consent, request UUIDs, origins, payload size, and attachments. Database constraints add a second validation layer. Client-supplied review status, timestamps, and notes are ignored. The endpoint is public and has no CAPTCHA; CORS restricts browser origins but is not bot protection. Keep secrets and applicant payloads out of logs.
 
 ## Review applications
 
@@ -54,7 +53,7 @@ node --test tests/application-backend.test.mjs
 node tests/application-browser.cjs
 ```
 
-The browser check uses installed Microsoft Edge on Windows, with no npm dependencies. Set `BROWSER_PATH` to a Chromium browser executable on other systems. It checks four viewport sizes, validation, keyboard behavior, navigation state, verification configuration, failed-request recovery, retry IDs, and confirmation using mocked services. Screenshots are saved in the system temporary directory. It does not prove live Turnstile, Supabase, or Vercel integration.
+The browser check uses installed Microsoft Edge on Windows, with no npm dependencies. Set `BROWSER_PATH` to a Chromium browser executable on other systems. It checks four viewport sizes, validation, keyboard behavior, navigation state, endpoint configuration, failed-request recovery, retry IDs, and confirmation using mocked services. Screenshots are saved in the system temporary directory. It does not prove live Supabase or Vercel integration.
 
 With a migrated local or staging database, run `supabase/tests/applications.sql` through `psql` as postgres. It checks RLS, anonymous/authenticated table privileges, and duplicate request rejection in a rolled-back transaction. Live launch requires this database check and the real-service smoke test described above.
 
@@ -62,10 +61,18 @@ With a migrated local or staging database, run `supabase/tests/applications.sql`
 
 Apply both database migrations with `supabase db push`, then redeploy `submit-application`. The migration creates a private `application-work` Storage bucket. No browser Storage credentials or public read policies are required. JSON submissions without attachments remain supported; attachments use a bounded multipart request. The function validates file signatures, extensions, declared types, sizes, and counts before uploading. It does not scan files for malware.
 
-Files are uploaded only after successful validation, consent, and Turnstile verification. The UI shows an uploading status, retains selected files on failure, and reuses a request UUID for unchanged retries. Files use deterministic SHA-256 paths; duplicate retries return the original application reference. The server verifies existing answers and attachment metadata before accepting a retry.
+Files are uploaded only after successful validation and consent. The UI shows an uploading status, retains selected files on failure, and reuses a request UUID for unchanged retries. Files use deterministic SHA-256 paths; duplicate retries return the original application reference. The server verifies existing answers and attachment metadata before accepting a retry.
 
 Deploy `cleanup-application-work`, set a strong random `CLEANUP_SECRET` in Supabase function secrets, and configure an hourly scheduler to POST to that function with `Authorization: Bearer YOUR_CLEANUP_SECRET`. Keep this secret only in the scheduler and server. Each call removes at most 100 unreferenced files older than 24 hours; schedule more frequently if needed. This handles interrupted uploads and failed database writes. Do not enable recruitment until the cleanup schedule is configured and tested.
 
 Organizers review `work_description`, `portfolio_url`, and `work_files` in the private applications table. Attachment metadata contains the original filename and private Storage path; open/download that object through the authorized Supabase Storage dashboard. Deleting an application makes its files eligible for cleanup after the 24-hour grace period. A changed recruitment notice or retention policy should be reviewed before launch.
 
 Before production, test real multipart uploads through the deployed function, private file access, unchanged retries, and cleanup. Local mocked tests do not verify hosted request limits or Storage permissions.
+
+## Welcome audio
+
+Sound defaults on, with a minimal mute control. If the browser blocks autoplay, the welcome animation waits for Start welcome (or another user interaction), keeping the opening sound and highlight stroke synchronized. Muting allows the intro to continue silently; skipping stops all audio. Reduced-motion and direct Join visits bypass the intro audio. A compressor and sustained envelopes keep the three cues audible without clipping.
+
+Run `node tests/welcome-audio-browser.cjs` to check blocked/allowed autoplay, all three cues using measured audio levels, mute, and skip. This test uses real Web Audio in Edge with simulated autoplay blocking; listening on target devices remains useful for judging tone and loudness.
+
+The zoom cue uses a warm major chord swell, a restrained air layer, and a short room tail in place of the earlier pitch sweep.

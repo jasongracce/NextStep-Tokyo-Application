@@ -68,3 +68,9 @@
 .work-file-list{padding-left:20px;overflow-wrap:anywhere}
 .work-file-list button{font-size:.875rem;padding:4px 12px;text-decoration:underline;text-underline-offset:4px}
 .application input[type=file]{font-size:.875rem;max-width:100%}
+
+.welcome-awaiting-audio *{animation-play-state:paused!important}
+.start-welcome{position:fixed;left:50%;bottom:calc(32px + env(safe-area-inset-bottom));translate:-50% 0;z-index:6;min-height:48px;padding:12px 24px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:inherit;font-size:14px;cursor:pointer;transition:background-color .2s ease}
+.start-welcome[hidden]{display:none}
+@media(hover:hover){.start-welcome:hover{background:#e9e7e1}}
+@media(prefers-reduced-motion:reduce){.start-welcome{transition:none}}

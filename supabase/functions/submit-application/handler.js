@@ -22,7 +22,7 @@ export function validate(body) {
   if(data.portfolio_url){try{const url=new URL(data.portfolio_url);if(!['https:','http:'].includes(url.protocol)||url.username||url.password)throw Error();}catch{errors.portfolio_url='Enter a complete http or https link.';}}
   return {data,errors};
 }
-export function createHandler({origins,verify,save}) {
+export function createHandler({origins,save}) {
   return async request=>{
     const origin=request.headers.get('origin');
     const headers={'Content-Type':'application/json','Cache-Control':'no-store','Vary':'Origin'};
@@ -66,7 +66,6 @@ export function createHandler({origins,verify,save}) {
         attachments.push({name:file.name,type,size:file.size,bytes});
       }
       if(Object.keys(errors).length)return reply(400,{errors});
-      if(typeof body.turnstile_token!=='string'||body.turnstile_token.length>2048||!await verify(body.turnstile_token,new URL(origin).hostname))return reply(403,{error:'verification_failed'});
       return reply(200,{reference:await save(data,attachments)});
     }catch{return reply(503,{error:'temporarily_unavailable'});}
   };

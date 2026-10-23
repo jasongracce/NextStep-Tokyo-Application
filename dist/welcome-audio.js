@@ -2,7 +2,7 @@
   const Audio = window.AudioContext || window.webkitAudioContext;
   if (!Audio || matchMedia('(prefers-reduced-motion: reduce)').matches || location.hash === '#join') return;
   let context, master, enabled = true;
-  const started = performance.now();
+  let ready = false;
   const played = new Set();
   const sources = new Set();
   const control = document.createElement('button');
@@ -16,6 +16,20 @@
   updateControl();
   control.className = 'sound-toggle';
   document.body.append(control);
+  const startControl=document.createElement('button');
+  startControl.type='button';startControl.className='start-welcome';
+  startControl.textContent='Start welcome';startControl.hidden=true;
+  startControl.addEventListener('click',()=>unlock());
+  document.body.append(startControl);
+  document.body.classList.add('welcome-awaiting-audio');
+  function begin() {
+    if(ready||stopped)return;
+    ready=true;window.welcomeAudio.ready=true;
+    document.body.classList.remove('welcome-awaiting-audio');
+    startControl.remove();
+    play('welcome');
+    window.dispatchEvent(new Event('welcome-audio-ready'));
+  }
 
   function track(source, duration) {
     sources.add(source);
@@ -27,6 +41,7 @@
     const gain = context.createGain(), now = context.currentTime;
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(level, now + attack);
+    gain.gain.setValueAtTime(level*.8, now + duration*.65);
     gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
     gain.connect(master);
     setTimeout(() => gain.disconnect(), duration * 1000 + 100);
@@ -58,19 +73,48 @@
     track(source, duration);
     setTimeout(() => filter.disconnect(), duration * 1000 + 100);
   }
+  function cinematicZoom() {
+    const now=context.currentTime,duration=2.6;
+    const bus=context.createBiquadFilter();
+    bus.type='lowpass';bus.frequency.setValueAtTime(1400,now);
+    bus.frequency.linearRampToValueAtTime(3200,now+1.3);bus.Q.value=.35;
+    bus.connect(master);
+    // A short, dark room tail gives the chord depth without a sharp pitch sweep.
+    const reverb=context.createConvolver(),wet=context.createGain();
+    const impulse=context.createBuffer(2,Math.ceil(context.sampleRate*.85),context.sampleRate);
+    for(let channel=0;channel<2;channel++){
+      const samples=impulse.getChannelData(channel);
+      for(let i=0;i<samples.length;i++)samples[i]=(Math.random()*2-1)*Math.pow(1-i/samples.length,3);
+    }
+    reverb.buffer=impulse;wet.gain.value=.2;
+    bus.connect(reverb);reverb.connect(wet);wet.connect(master);
+    const wave=context.createPeriodicWave(new Float32Array(5),new Float32Array([0,1,.18,.06,.02]));
+    [146.83,185,220].forEach((frequency,index)=>{
+      const voice=context.createOscillator(),gain=context.createGain(),pan=context.createStereoPanner();
+      voice.setPeriodicWave(wave);voice.frequency.value=frequency;
+      voice.detune.value=(index-1)*3;pan.pan.value=(index-1)*.32;
+      gain.gain.setValueAtTime(0,now);
+      gain.gain.linearRampToValueAtTime(.08,now+.45);
+      gain.gain.linearRampToValueAtTime(.22,now+1.2);
+      gain.gain.exponentialRampToValueAtTime(.0001,now+duration);
+      voice.connect(gain);gain.connect(pan);pan.connect(bus);track(voice,duration);
+      setTimeout(()=>{gain.disconnect();pan.disconnect();},duration*1000+100);
+    });
+    noise(1.8,320,1600,.13);
+    setTimeout(()=>{bus.disconnect();reverb.disconnect();wet.disconnect();},(duration+.9)*1000);
+  }
   function play(cue) {
     if (!enabled || !context || context.state !== 'running' || played.has(cue) || document.hidden) return;
     played.add(cue);
     if (cue === 'welcome') {
-      tone(98, 49, 2.2, .22);
-      tone(196, 147, 1.8, .07);
-      noise(1.7, 700, 1800, .065);
+      tone(110, 55, 2.2, .38);
+      tone(220, 165, 1.8, .19);
+      tone(440, 330, 1.4, .09);
+      noise(1.7, 700, 2400, .18);
     } else if (cue === 'draw') {
-      noise(.65, 2300, 1100, .18, true);
+      noise(.65, 3200, 1600, .7, true);
     } else if (cue === 'zoom') {
-      noise(1.8, 240, 6500, .24);
-      tone(65, 32, 2.1, .24);
-      tone(180, 700, 1.65, .045);
+      cinematicZoom();
     }
   }
   let stopped = false;
@@ -80,28 +124,35 @@
       if (!context) {
         context = new Audio();
         master = context.createGain();
-        master.gain.value = .55;
-        master.connect(context.destination);
+        master.gain.value = .9;
+        const compressor=context.createDynamicsCompressor();
+        compressor.threshold.value=-10;compressor.knee.value=12;
+        compressor.ratio.value=4;compressor.attack.value=.003;compressor.release.value=.18;
+        master.connect(compressor);compressor.connect(context.destination);
       }
-      if (context.state !== 'running') await context.resume();
+      if (context.state !== 'running') {
+        startControl.hidden=false;
+        await context.resume();
+      }
       if (stopped || !enabled) return;
-      if (performance.now() - started < 2300) play('welcome');
-    } catch { /* Retry on the next interaction if autoplay is blocked. */ }
+      begin();
+    } catch { if(!stopped)startControl.hidden=false; }
   }
   control.addEventListener('click', () => {
     enabled = !enabled;
-    if (master && context.state !== 'closed') master.gain.setTargetAtTime(enabled ? .55 : 0, context.currentTime, .025);
+    if (master && context.state !== 'closed') master.gain.setTargetAtTime(enabled ? .9 : 0, context.currentTime, .025);
     updateControl();
     if (enabled) unlock();
+    else begin();
   });
   function onInteraction(event) {
-    if (!control.contains(event.target)) unlock();
+    if (!control.contains(event.target)&&!event.target.closest?.('.skip-welcome')) unlock();
   }
   document.addEventListener('pointerdown', onInteraction);
   document.addEventListener('keydown', onInteraction);
-  unlock();
   document.querySelector('.welcome-highlight').addEventListener('animationstart', () => play('draw'));
   window.welcomeAudio = {
+    ready:false,
     play,
     stop() {
       stopped = true;
@@ -109,10 +160,12 @@
       document.removeEventListener('pointerdown', onInteraction);
       document.removeEventListener('keydown', onInteraction);
       for (const source of sources) { try { source.stop(); } catch {} }
-      control.remove();
+      control.remove();startControl.remove();
+      document.body.classList.remove('welcome-awaiting-audio');
       if (context && context.state !== 'closed') context.close().catch(() => {});
     }
   };
+  unlock();
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && context?.state === 'running') context.suspend().catch(() => {});
     else if (!document.hidden && enabled && context?.state === 'suspended') context.resume().catch(() => {});

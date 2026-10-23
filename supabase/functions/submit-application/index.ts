@@ -5,16 +5,6 @@ const origins=(Deno.env.get('ALLOWED_ORIGINS')||'').split(',').map(value=>value.
 const client=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false,autoRefreshToken:false}});
 Deno.serve(createHandler({
   origins,
-  async verify(token:string,hostname:string) {
-    if(!token)return false;
-    const response=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{
-      method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(10000),
-      body:JSON.stringify({secret:Deno.env.get('TURNSTILE_SECRET_KEY'),response:token})
-    });
-    if(!response.ok)throw new Error('Verification unavailable');
-    const result=await response.json();
-    return result.success===true&&result.action==='application'&&result.hostname===hostname;
-  },
   async save(data:Record<string,unknown>,files:Array<{name:string,type:string,size:number,bytes:Uint8Array}>) {
     const bucket=client.storage.from('application-work');
     const workFiles=[];
