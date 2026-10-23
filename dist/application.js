@@ -73,7 +73,6 @@
     form.querySelectorAll('input,textarea').forEach(input=>input.disabled=state.busy);
     form.setAttribute('aria-busy',String(state.busy));
     const configured=!!(config.endpoint&&config.turnstileSiteKey);
-    if(state.step===3&&!configured) submit.disabled=true;
     form.querySelector('.application-status').textContent=state.message||(!configured?'Applications are not open yet. You can explore the form, but submissions are currently unavailable.':'');
     const dl=form.querySelector('dl'); dl.replaceChildren();
     for(const name of [...steps[0],'preferred_role','experience','motivation']) {
@@ -110,7 +109,7 @@
     event.preventDefault();if(state.busy)return;collect();state.errors=validate(state.step===3?steps.flat():steps[state.step]);
     if(Object.keys(state.errors).length){const first=Object.keys(state.errors)[0];state.step=steps.findIndex(names=>names.includes(first));show();form.querySelector(`[name="${first}"]`).focus();return;}
     if(state.step<3){state.step++;state.message='';show(true);return;}
-    if(!config.endpoint||!config.turnstileSiteKey)return;
+    if(!config.endpoint||!config.turnstileSiteKey){state.message='Your application has not been sent. Submissions need to be connected before we can receive your answers. Please try again once applications are open.';show();return;}
     if(!token){state.message='Please complete the verification before submitting.';show();return;}
     state.busy=true;state.message='';state.requestId ||= crypto.randomUUID();show();
     const controller=new AbortController(), timeout=setTimeout(()=>controller.abort(),120000);

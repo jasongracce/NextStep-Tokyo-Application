@@ -47,11 +47,15 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
 
     assert.equal(await evaluate("document.querySelector('.application-review').textContent.includes('I would like to help.')"),true);
     assert.equal(await evaluate("document.querySelector('[name=motivation]').closest('section').hidden"),true);
-    assert.equal(await evaluate("document.querySelector('.application [type=submit]').disabled"),true);
+    assert.equal(await evaluate("document.querySelector('.application [type=submit]').disabled"),false);
     await evaluate("document.querySelector('[data-edit=\"0\"]').click();document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate("document.querySelector('[name=full_name]').value"),'Jane Student');
     assert.equal(await evaluate("document.querySelector('[name=preferred_role]:checked').value"),'graphics');
     await evaluate("document.querySelector('.application').requestSubmit()");
+    await evaluate("document.querySelector('[name=consent]').click();document.querySelector('.application').requestSubmit()");
+    assert.match(await evaluate("document.querySelector('.application-status').textContent"),/has not been sent/);
+    assert.equal(await evaluate("document.querySelector('.application-reference')"),null);
+    await evaluate("document.querySelector('[name=consent]').click()");
     // Simulate configured verification and endpoint; no live service or applicant data.
     await evaluate(`(()=>{window.APPLICATION_CONFIG.endpoint='https://test.invalid';window.APPLICATION_CONFIG.turnstileSiteKey='test';window.turnstile={render:(element,options)=>{options.callback('verified');return 1;},remove:()=>{}};window.applicationTurnstileReady();document.querySelector('[name=motivation]').value='I would like to help.';document.querySelector('[name=consent]').click();document.querySelector('[data-edit="0"]').click();document.querySelector('[name=full_name]').focus();document.querySelector('[name=full_name]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));})()`);
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 4');
