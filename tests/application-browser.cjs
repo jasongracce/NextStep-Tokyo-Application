@@ -19,21 +19,31 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
     await send('Page.navigate',{url:'file:///'+path.resolve(__dirname,'../dist/index.html').replaceAll('\\','/')});await sleep(350);
     assert.equal(await evaluate("document.querySelector('.application')===null"),true);await evaluate('select(2)');await sleep(100);assert.equal(await evaluate("document.querySelector('.apply-link').textContent"),'Apply');await evaluate("document.querySelector('.apply-link').click()");await sleep(300);
-    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 3');
+    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 4');
     await evaluate("document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate('document.activeElement.name'),'full_name');
     await evaluate(`(()=>{const f=document.querySelector('.application');for(const [name,value] of Object.entries({full_name:'Jane Student',email:'jane@example.com',school:'Tokyo school',study_year:'Year 2'})){f.elements.namedItem(name).value=value;f.elements.namedItem(name).dispatchEvent(new Event('input',{bubbles:true}));}f.requestSubmit();})()`);
-    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 2 of 3');
+    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 2 of 4');
     await evaluate("document.querySelector('[name=preferred_role][value=graphics]').click();document.querySelector('.application').requestSubmit()");
-    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 3 of 3');
+    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 3 of 4');
+    assert.equal(await evaluate("document.querySelector('.application [type=submit]').disabled"),false);
+    assert.equal(await evaluate("document.querySelector('.application-review').closest('section').hidden"),true);
+    await evaluate("document.querySelector('.application').requestSubmit()");
+    assert.equal(await evaluate('document.activeElement.name'),'motivation');
+    await evaluate("document.querySelector('[name=motivation]').value='I would like to help.';document.querySelector('.application').requestSubmit()");
+    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 4 of 4');
+    assert.equal(await evaluate("document.querySelector('.application-review').textContent.includes('I would like to help.')"),true);
+    assert.equal(await evaluate("document.querySelector('[name=motivation]').closest('section').hidden"),true);
     assert.equal(await evaluate("document.querySelector('.application [type=submit]').disabled"),true);
     await evaluate("document.querySelector('[data-edit=\"0\"]').click();document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate("document.querySelector('[name=full_name]').value"),'Jane Student');
     assert.equal(await evaluate("document.querySelector('[name=preferred_role]:checked').value"),'graphics');
+    await evaluate("document.querySelector('.application').requestSubmit()");
     // Simulate configured verification and endpoint; no live service or applicant data.
     await evaluate(`(()=>{window.APPLICATION_CONFIG.endpoint='https://test.invalid';window.APPLICATION_CONFIG.turnstileSiteKey='test';window.turnstile={render:(element,options)=>{options.callback('verified');return 1;},remove:()=>{}};window.applicationTurnstileReady();document.querySelector('[name=motivation]').value='I would like to help.';document.querySelector('[name=consent]').click();document.querySelector('[data-edit="0"]').click();document.querySelector('[name=full_name]').focus();document.querySelector('[name=full_name]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));})()`);
-    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 3');
+    assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 1 of 4');
     await evaluate("document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
+    await evaluate("document.querySelector('.application').requestSubmit()");
     assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth"),`Overflow at ${width}`);
     const rects=await evaluate("[...document.querySelectorAll('.application-actions button')].filter(x=>!x.hidden).map(x=>x.getBoundingClientRect().height)");assert.ok(rects.every(height=>height>=48));
     if(width===390||width===1440){await evaluate('window.scrollTo(0,0)');const shot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(os.tmpdir(),`nextstep-form-${width}.png`),Buffer.from(shot.data,'base64'));}

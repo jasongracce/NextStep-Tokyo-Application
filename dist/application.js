@@ -1,6 +1,6 @@
 (() => {
   const roles = {graphics:'Graphics',video_photo:'Video and photography',events:'Event planning and logistics',undecided:'Not sure yet'};
-  const steps = [['full_name','email','school','study_year'],['preferred_role','experience'],['motivation','consent']];
+  const steps = [['full_name','email','school','study_year'],['preferred_role','experience'],['motivation'],['consent']];
   const limits = {full_name:100,email:254,school:200,study_year:80,motivation:2000,experience:2000};
   const labels = {full_name:'Full name',email:'Email',school:'School / university',study_year:'Year of study',motivation:'Why would you like to join?',experience:'Relevant experience (optional)'};
   const state = {step:0,values:{},busy:false,reference:null,requestId:null,errors:{},message:''};
@@ -12,7 +12,8 @@
   form.innerHTML = `<p class="application-progress"></p>
     <section data-step="0" aria-labelledby="app-title-0"><h3 id="app-title-0" tabindex="-1">About you</h3>${steps[0].map(n=>field(n)).join('')}</section>
     <section data-step="1" aria-labelledby="app-title-1"><h3 id="app-title-1" tabindex="-1">Team interest</h3><fieldset><legend>Preferred role</legend>${Object.entries(roles).map(([value,label])=>`<label class="choice"><input type="radio" name="preferred_role" value="${value}" required>${label}</label>`).join('')}<p class="field-error" id="error-preferred_role" hidden></p></fieldset>${field('experience',true)}</section>
-    <section data-step="2" aria-labelledby="app-title-2"><h3 id="app-title-2" tabindex="-1">Your motivation</h3>${field('motivation',true)}<div class="application-review"><h4>Your details</h4><dl></dl><button type="button" data-edit="0">Edit about you</button><button type="button" data-edit="1">Edit team interest</button></div><p class="application-notice">NextStep Tokyo will use your answers and contact details to review your application and contact you about recruitment. Only authorized organizers will access your application.</p><label class="choice"><input type="checkbox" name="consent" required><span>I agree to this use of my information.</span></label><p class="field-error" id="error-consent" hidden></p><div class="application-verification"></div></section>
+    <section data-step="2" aria-labelledby="app-title-2"><h3 id="app-title-2" tabindex="-1">Your motivation</h3>${field('motivation',true)}</section>
+    <section data-step="3" aria-labelledby="app-title-3"><h3 id="app-title-3" tabindex="-1">Review your answers</h3><div class="application-review"><dl></dl><button type="button" data-edit="0">Edit about you</button><button type="button" data-edit="1">Edit team interest</button><button type="button" data-edit="2">Edit motivation</button></div><p class="application-notice">NextStep Tokyo will use your answers and contact details to review your application and contact you about recruitment. Only authorized organizers will access your application.</p><label class="choice"><input type="checkbox" name="consent" required><span>I agree to this use of my information.</span></label><p class="field-error" id="error-consent" hidden></p><div class="application-verification"></div></section>
     <div class="application-status" role="status" aria-live="polite"></div><div class="application-actions"><button type="button" data-back>Back</button><button type="submit">Continue →</button></div>`;
   function collect() {
     for (const name of Object.keys(limits)) state.values[name] = form.elements.namedItem(name).value;
@@ -52,17 +53,17 @@
       host.append(heading,copy,ref); if(focus) heading.focus(); return;
     }
     form.querySelectorAll('[data-step]').forEach(node=>node.hidden=Number(node.dataset.step)!==state.step);
-    form.querySelector('.application-progress').textContent=`Step ${state.step+1} of 3`;
+    form.querySelector('.application-progress').textContent=`Step ${state.step+1} of ${steps.length}`;
     form.querySelector('[data-back]').hidden=state.step===0;
-    const submit=form.querySelector('[type=submit]'); submit.textContent=state.busy?'Submitting…':state.step===2?'Submit application':'Continue →';
+    const submit=form.querySelector('[type=submit]'); submit.textContent=state.busy?'Submitting…':state.step===3?'Submit application':'Continue →';
     form.querySelectorAll('button').forEach(button=>button.disabled=state.busy);
     form.querySelectorAll('input,textarea').forEach(input=>input.disabled=state.busy);
     form.setAttribute('aria-busy',String(state.busy));
     const configured=!!(config.endpoint&&config.turnstileSiteKey);
-    if(state.step===2&&!configured) submit.disabled=true;
+    if(state.step===3&&!configured) submit.disabled=true;
     form.querySelector('.application-status').textContent=state.message||(!configured?'Applications are not open yet. You can explore the form, but submissions are currently unavailable.':'');
     const dl=form.querySelector('dl'); dl.replaceChildren();
-    for(const name of [...steps[0],'preferred_role','experience']) {
+    for(const name of [...steps[0],'preferred_role','experience','motivation']) {
       const dt=document.createElement('dt'), dd=document.createElement('dd');
       dt.textContent=labels[name]||'Preferred role'; dd.textContent=name==='preferred_role'?roles[state.values[name]]||'—':state.values[name]||'—'; dl.append(dt,dd);
     }
@@ -70,7 +71,7 @@
   }
   function releaseWidget(){if(widget!==null&&window.turnstile) window.turnstile.remove(widget); widget=null;token='';}
   function ensureWidget(){
-    if(state.step!==2||!config.turnstileSiteKey||!window.turnstile||widget!==null||!form.isConnected)return;
+    if(state.step!==3||!config.turnstileSiteKey||!window.turnstile||widget!==null||!form.isConnected)return;
     widget=window.turnstile.render(form.querySelector('.application-verification'),{sitekey:config.turnstileSiteKey,action:'application',callback:value=>{token=value;},'expired-callback':()=>{token='';},'error-callback':()=>{token='';state.message='Verification could not load. Check your connection and try again.';show();}});
   }
   window.applicationTurnstileReady=ensureWidget;
@@ -78,9 +79,9 @@
   form.addEventListener('input',()=>{collect();state.requestId=null;});
   form.addEventListener('click',event=>{const edit=event.target.closest('[data-edit],[data-back]');if(!edit||state.busy)return;collect();state.step=edit.hasAttribute('data-edit')?Number(edit.dataset.edit):state.step-1;state.errors={};state.message='';show(true);});
   form.addEventListener('submit',async event=>{
-    event.preventDefault();if(state.busy)return;collect();state.errors=validate(state.step===2?steps.flat():steps[state.step]);
+    event.preventDefault();if(state.busy)return;collect();state.errors=validate(state.step===3?steps.flat():steps[state.step]);
     if(Object.keys(state.errors).length){const first=Object.keys(state.errors)[0];state.step=steps.findIndex(names=>names.includes(first));show();form.querySelector(`[name="${first}"]`).focus();return;}
-    if(state.step<2){state.step++;state.message='';show(true);return;}
+    if(state.step<3){state.step++;state.message='';show(true);return;}
     if(!config.endpoint||!config.turnstileSiteKey)return;
     if(!token){state.message='Please complete the verification before submitting.';show();return;}
     state.busy=true;state.message='';state.requestId ||= crypto.randomUUID();show();

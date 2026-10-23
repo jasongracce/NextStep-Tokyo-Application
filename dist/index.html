@@ -195,6 +195,7 @@ header,footer{animation:chromeArrival .9s ease 7.3s both}
 </main>
 <footer><span>Tokyo, Japan</span><div class="navigation"><button id="back" aria-label="Previous section">← Back</button><button id="next" aria-label="Next section">Next →</button></div></footer>
 <div class="scroll-progress" role="progressbar" aria-label="Scroll to change section" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-hidden="true"><svg viewBox="0 0 40 40" aria-hidden="true"><circle class="track" cx="20" cy="20" r="16"/><circle class="fill" cx="20" cy="20" r="16" pathLength="100"/></svg></div>
+<script src="welcome-audio.js"></script>
 <script>
 const sections=[{label:'A shared next step',title:'Who we are',description:'A student-led organization bridging classroom learning and practical experience. NextStep Tokyo brings students together to learn, contribute, and take their next step as a team.',detail:'Explore our teams, find where you can contribute, and help shape what comes next.'},{label:'Find your place',title:'Our organizational structure',description:'Different strengths. One shared direction. Explore the teams that bring NextStep Tokyo together.',detail:'<div class="team-descriptions"><section><h3>Organizational leader</h3><p>The organizational leader sets NextStep Tokyo’s direction and keeps the teams working toward the same goals. They coordinate major decisions, support team leads, and communicate with external partners and collaborators.</p></section><section><h3>Marketing team</h3><p>The Marketing team helps students discover NextStep Tokyo and understand what we do. It manages our communications, promotes events, and shares the stories behind our work.</p><p><strong>Graphics</strong> creates visual materials for event announcements, social media, and other communications.</p><p><strong>Video and photography</strong> captures our events and produces photo and video content that shows our community in action.</p></section><section><h3>Event team</h3><p>The Event team turns ideas into experiences where students can apply what they learn. Its <strong>Event Planning and Logistics</strong> subteam develops workshops and competitions, plans the event schedule, and coordinates the practical details needed to run each event.</p></section></div>'},{label:'Your next step starts here',title:'Join NextStep Tokyo',description:'Bring your curiosity, interests, and ideas. Find a team where you can contribute and grow with other students.',detail:''}];
 let active=location.hash==='#join'?2:0;let timer;const ring=document.querySelector('.ring');const buttons=[...document.querySelectorAll('.marker')];const body=document.querySelector('.section-body');const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -305,6 +306,7 @@ window.addEventListener('touchend',event=>{
 const welcomeContent=[document.querySelector('.experience'),document.querySelector('footer')];
 welcomeContent.forEach(element=>element.inert=!reduced);
 function finishWelcome(){
+  window.welcomeAudio?.stop();
   document.body.classList.remove('welcome-playing');
   document.body.classList.add('welcome-finished');
   welcomeContent.forEach(element=>element.inert=false);
@@ -372,6 +374,7 @@ function drawWelcomeZoom(progress){
 const zoomTimer=reduced?null:setTimeout(()=>{
   if(document.body.classList.contains('welcome-skipped'))return;
   prepareWelcomeZoom();document.querySelector('.intro').classList.add('zooming');
+  window.welcomeAudio?.play('zoom');
   const started=performance.now();
   const tick=now=>{const progress=Math.min(1,(now-started)/1800);drawWelcomeZoom(progress);if(progress<1)zoomFrame=requestAnimationFrame(tick);};
   zoomFrame=requestAnimationFrame(tick);
