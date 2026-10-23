@@ -19,4 +19,16 @@ begin
   exception when unique_violation then null;
   end;
 end $$;
+do $$
+begin
+  assert (select not public from storage.buckets where id='application-work'), 'Work bucket must be private';
+  assert not has_function_privilege('anon','public.unreferenced_application_work()','EXECUTE'), 'Anonymous cleanup must be denied';
+  assert not has_function_privilege('authenticated','public.unreferenced_application_work()','EXECUTE'), 'Authenticated cleanup must be denied';
+  begin
+    update public.applications set preferred_role='events',work_description='creative draft'
+    where request_id='12345678-1234-4234-8234-123456789abc';
+    raise exception 'Noncreative work was accepted';
+  exception when check_violation then null;
+  end;
+end $$;
 rollback;

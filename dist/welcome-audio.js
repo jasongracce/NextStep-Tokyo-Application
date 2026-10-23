@@ -1,15 +1,20 @@
 (() => {
   const Audio = window.AudioContext || window.webkitAudioContext;
   if (!Audio || matchMedia('(prefers-reduced-motion: reduce)').matches || location.hash === '#join') return;
-  let context, master, enabled = false;
+  let context, master, enabled = true;
   const started = performance.now();
   const played = new Set();
   const sources = new Set();
   const control = document.createElement('button');
   control.type = 'button';
-  control.textContent = 'Enable sound';
-  control.setAttribute('aria-pressed', 'false');
-  control.style.cssText = 'position:fixed;left:max(24px,env(safe-area-inset-left));bottom:24px;z-index:6;min-height:48px;padding:12px 16px;border:1px solid #89919a;border-radius:2px;background:#f5f3ed;color:#192b42;font:inherit;font-size:13px;cursor:pointer';
+  function updateControl() {
+    control.setAttribute('aria-label', enabled ? 'Mute sound' : 'Unmute sound');
+    control.title = enabled ? 'Mute sound' : 'Unmute sound';
+    control.setAttribute('aria-pressed', String(!enabled));
+    control.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4Z"/>${enabled ? '<path d="M15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>' : '<path d="m16 9 5 6m0-6-5 6"/>'}</svg>`;
+  }
+  updateControl();
+  control.className = 'sound-toggle';
   document.body.append(control);
 
   function track(source, duration) {
@@ -54,7 +59,7 @@
     setTimeout(() => filter.disconnect(), duration * 1000 + 100);
   }
   function play(cue) {
-    if (!enabled || context.state !== 'running' || played.has(cue) || document.hidden) return;
+    if (!enabled || !context || context.state !== 'running' || played.has(cue) || document.hidden) return;
     played.add(cue);
     if (cue === 'welcome') {
       tone(98, 49, 2.2, .22);
@@ -68,7 +73,9 @@
       tone(180, 700, 1.65, .045);
     }
   }
-  control.addEventListener('click', async () => {
+  let stopped = false;
+  async function unlock() {
+    if (stopped || !enabled) return;
     try {
       if (!context) {
         context = new Audio();
@@ -76,19 +83,31 @@
         master.gain.value = .55;
         master.connect(context.destination);
       }
-      await context.resume();
-      enabled = !enabled;
-      master.gain.setTargetAtTime(enabled ? .55 : 0, context.currentTime, .025);
-      control.textContent = enabled ? 'Mute sound' : 'Enable sound';
-      control.setAttribute('aria-pressed', String(enabled));
+      if (context.state !== 'running') await context.resume();
+      if (stopped || !enabled) return;
       if (performance.now() - started < 2300) play('welcome');
-    } catch { control.textContent = 'Sound unavailable'; }
+    } catch { /* Retry on the next interaction if autoplay is blocked. */ }
+  }
+  control.addEventListener('click', () => {
+    enabled = !enabled;
+    if (master && context.state !== 'closed') master.gain.setTargetAtTime(enabled ? .55 : 0, context.currentTime, .025);
+    updateControl();
+    if (enabled) unlock();
   });
+  function onInteraction(event) {
+    if (!control.contains(event.target)) unlock();
+  }
+  document.addEventListener('pointerdown', onInteraction);
+  document.addEventListener('keydown', onInteraction);
+  unlock();
   document.querySelector('.welcome-highlight').addEventListener('animationstart', () => play('draw'));
   window.welcomeAudio = {
     play,
     stop() {
+      stopped = true;
       enabled = false;
+      document.removeEventListener('pointerdown', onInteraction);
+      document.removeEventListener('keydown', onInteraction);
       for (const source of sources) { try { source.stop(); } catch {} }
       control.remove();
       if (context && context.state !== 'closed') context.close().catch(() => {});

@@ -26,12 +26,25 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 2 of 4');
     await evaluate("document.querySelector('[name=preferred_role][value=graphics]').click();document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 3 of 4');
+    assert.equal(await evaluate("document.querySelector('.past-work').hidden"),false);
+    await evaluate(`(()=>{const f=document.querySelector('.application');f.elements.work_description.value='My design work';f.elements.portfolio_url.value='https://example.com/portfolio';const transfer=new DataTransfer();transfer.items.add(new File(['%PDF-1.7 sample'],'sample.pdf',{type:'application/pdf'}));f.elements.work_files.files=transfer.files;f.elements.work_files.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    assert.match(await evaluate("document.querySelector('.work-file-list').textContent"),/sample.pdf/);
+
     assert.equal(await evaluate("document.querySelector('.application [type=submit]').disabled"),false);
     assert.equal(await evaluate("document.querySelector('.application-review').closest('section').hidden"),true);
     await evaluate("document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate('document.activeElement.name'),'motivation');
     await evaluate("document.querySelector('[name=motivation]').value='I would like to help.';document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate("document.querySelector('.application-progress').textContent"),'Step 4 of 4');
+    assert.match(await evaluate("document.querySelector('.application-review').textContent"),/sample.pdf/);
+    assert.match(await evaluate("document.querySelector('.application-review').textContent"),/My design work/);
+    await evaluate(`document.querySelector('[data-edit="1"]').click();document.querySelector('[name=preferred_role][value=events]').click();document.querySelector('.application').requestSubmit()`);
+    assert.equal(await evaluate("document.querySelector('.past-work').hidden"),true);
+    await evaluate(`document.querySelector('[data-back]').click();document.querySelector('[name=preferred_role][value=graphics]').click();document.querySelector('.application').requestSubmit()`);
+    assert.equal(await evaluate("document.querySelector('[name=work_description]').value"),'My design work');
+    assert.match(await evaluate("document.querySelector('.work-file-list').textContent"),/sample.pdf/);
+    await evaluate("document.querySelector('.work-file-list button').click();const transfer=new DataTransfer();transfer.items.add(new File(['%PDF-1.7 sample'],'sample.pdf',{type:'application/pdf'}));document.querySelector('[name=work_files]').files=transfer.files;document.querySelector('[name=work_files]').dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('.application').requestSubmit()");
+
     assert.equal(await evaluate("document.querySelector('.application-review').textContent.includes('I would like to help.')"),true);
     assert.equal(await evaluate("document.querySelector('[name=motivation]').closest('section').hidden"),true);
     assert.equal(await evaluate("document.querySelector('.application [type=submit]').disabled"),true);
@@ -47,9 +60,10 @@ const browser=spawn(executable,['--headless','--disable-gpu','--no-first-run','-
     assert.ok(await evaluate("document.documentElement.scrollWidth<=innerWidth"),`Overflow at ${width}`);
     const rects=await evaluate("[...document.querySelectorAll('.application-actions button')].filter(x=>!x.hidden).map(x=>x.getBoundingClientRect().height)");assert.ok(rects.every(height=>height>=48));
     if(width===390||width===1440){await evaluate('window.scrollTo(0,0)');const shot=await send('Page.captureScreenshot',{format:'png'});fs.writeFileSync(path.join(os.tmpdir(),`nextstep-form-${width}.png`),Buffer.from(shot.data,'base64'));}
-    await evaluate(`window.sent=[];window.fetch=async(url,options)=>{window.sent.push(JSON.parse(options.body));throw Error('offline');};document.querySelector('.application').requestSubmit()`);await sleep(100);
+    await evaluate(`window.sent=[];window.fetch=async(url,options)=>{window.sent.push(JSON.parse(options.body instanceof FormData?options.body.get('application'):options.body));window.uploaded=options.body instanceof FormData?options.body.getAll('files').map(file=>file.name):[];throw Error('offline');};document.querySelector('.application').requestSubmit()`);await sleep(100);
     assert.match(await evaluate("document.querySelector('.application-status').textContent"),/could not confirm/);
     await evaluate("window.applicationTurnstileReady();document.querySelector('.application').requestSubmit()");await sleep(100);
+    assert.deepEqual(await evaluate('uploaded'),['sample.pdf']);
     assert.equal(await evaluate('sent.length'),2);assert.equal(await evaluate('sent[0].request_id===sent[1].request_id'),true);
     await evaluate("window.calls=0;window.fetch=()=>{calls++;return new Promise(resolve=>window.resolveSubmission=resolve)};window.applicationTurnstileReady();document.querySelector('.application').requestSubmit();document.querySelector('.application').requestSubmit()");
     assert.equal(await evaluate('calls'),1);
