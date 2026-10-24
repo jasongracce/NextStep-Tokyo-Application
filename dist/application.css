@@ -63,8 +63,12 @@
 .apply-link:active,.application button:active:not(:disabled),.navigation button:active:not(:disabled),.sound-toggle:active{translate:0 1px}
 @media(prefers-reduced-motion:reduce){.apply-link,.application button,.navigation button,.skip-welcome,.sound-toggle{transition:none;translate:none}}
 
-.past-work{border-top:1px solid var(--line)!important;padding-top:24px!important;margin-top:32px!important}
-.past-work p{font-size:.875rem;color:#46566b;line-height:1.6}
+.past-work{display:flow-root;border-top:1px solid var(--line)!important;padding-top:24px!important;margin-top:32px!important}
+.application .past-work legend{float:left;width:100%;padding:0;margin:0 0 12px;font-size:1.1rem}
+.past-work p{font-size:.875rem;color:#46566b;line-height:1.6;margin:0 0 24px}
+.past-work>p{clear:both}
+.past-work #work-help{margin:12px 0 16px}
+.past-work .field-error{margin:6px 0 0}
 .work-file-list{padding-left:20px;overflow-wrap:anywhere}
 .work-file-list button{font-size:.875rem;padding:4px 12px;text-decoration:underline;text-underline-offset:4px}
 .application input[type=file]{font-size:.875rem;max-width:100%}

@@ -3,10 +3,10 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{1
 export function validate(body) {
   const errors={}, data={};
   for(const [name,limit] of Object.entries(limits)) {
-    const value=body[name]===undefined&&name==='experience'?'':body[name];
+    const value=body[name];
     if(typeof value!=='string') {errors[name]='Enter text for this field.';continue;}
     data[name]=value.trim();
-    if((name!=='experience'&&!data[name])||Array.from(data[name]).length>limit)errors[name]=`Use ${name==='experience'?0:1}–${limit} characters.`;
+    if(!data[name]||Array.from(data[name]).length>limit)errors[name]=`Use 1–${limit} characters.`;
   }
   if(data.email){data.email=data.email.toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))errors.email='Enter a valid email address.';}
   if(!['graphics','video_photo','events','undecided'].includes(body.preferred_role))errors.preferred_role='Choose a preferred role.';

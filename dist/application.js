@@ -2,7 +2,7 @@
   const roles = {graphics:'Graphics',video_photo:'Video and photography',events:'Event planning and logistics'};
   const steps = [['full_name','email','school','study_year'],['preferred_role','experience'],['motivation','work_description','portfolio_url','work_files'],['consent']];
   const limits = {full_name:100,email:254,school:200,study_year:80,motivation:2000,experience:2000,work_description:1000,portfolio_url:2000};
-  const labels = {full_name:'Full name',email:'Email',school:'School / university',study_year:'Year of study',motivation:'Why would you like to join?',work_description:'About your past work (optional)',portfolio_url:'Portfolio or video link (optional)',experience:'Relevant experience (optional)'};
+  const labels = {full_name:'Full name',email:'Email',school:'School / university',study_year:'Year of study',motivation:'Why would you like to join?',work_description:'About your past work (optional)',portfolio_url:'Portfolio or video link (optional)',experience:'Relevant Experience / Skills'};
   const creative = () => ['graphics','video_photo'].includes(state.values.preferred_role);
   let files = [];
   const state = {step:0,values:{},busy:false,reference:null,requestId:null,errors:{},message:''};
@@ -10,7 +10,7 @@
   let host;
   const form = document.createElement('form');
   form.className = 'application'; form.noValidate = true;
-  const field = (name, multiline=false) => `<div class="field"><label for="app-${name}">${labels[name]}</label>${multiline?`<textarea id="app-${name}" name="${name}" maxlength="${limits[name]}" ${name==='motivation'?'required':''}></textarea>`:`<input id="app-${name}" name="${name}" type="${name==='email'?'email':'text'}" maxlength="${limits[name]}" autocomplete="${name==='full_name'?'name':name==='email'?'email':'off'}" required>`}<p class="field-error" id="error-${name}" hidden></p></div>`;
+  const field = (name, multiline=false) => `<div class="field"><label for="app-${name}">${labels[name]}</label>${multiline?`<textarea id="app-${name}" name="${name}" maxlength="${limits[name]}" ${['motivation','experience'].includes(name)?'required':''}></textarea>`:`<input id="app-${name}" name="${name}" type="${name==='email'?'email':'text'}" maxlength="${limits[name]}" autocomplete="${name==='full_name'?'name':name==='email'?'email':'off'}" required>`}<p class="field-error" id="error-${name}" hidden></p></div>`;
   form.innerHTML = `<p class="application-progress"></p>
     <section data-step="0" aria-labelledby="app-title-0"><h3 id="app-title-0" tabindex="-1">About you</h3>${steps[0].map(n=>field(n)).join('')}</section>
     <section data-step="1" aria-labelledby="app-title-1"><h3 id="app-title-1" tabindex="-1">Team interest</h3><fieldset><legend>Preferred role</legend>${Object.entries(roles).map(([value,label])=>`<label class="choice"><input type="radio" name="preferred_role" value="${value}" required>${label}</label>`).join('')}<p class="field-error" id="error-preferred_role" hidden></p></fieldset>
@@ -39,7 +39,7 @@ ${field('experience',true)}</section>
       }
       if (name==='consent') { if (!value) errors[name]='Please agree before submitting.'; }
       else if (name==='preferred_role') { if (!roles[value]) errors[name]='Choose a preferred role.'; }
-      else if (name!=='experience' && !value?.trim()) errors[name]='Please complete this field.';
+      else if (!value?.trim()) errors[name]='Please complete this field.';
       else if (value?.trim().length>limits[name]) errors[name]=`Use ${limits[name]} characters or fewer.`;
       else if (name==='email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) errors[name]='Enter a valid email address.';
     }

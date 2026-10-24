@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 const source=await readFile(new URL('../supabase/functions/submit-application/handler.js',import.meta.url),'utf8');
 const {createHandler,validate}=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
-const valid={full_name:' Jane Student ',email:'JANE@example.com',school:'University',study_year:'Second year',preferred_role:'graphics',motivation:'I want to contribute.',experience:'',consent:true,consent_version:'recruitment-v1',request_id:'12345678-1234-4234-8234-123456789abc'};
+const valid={full_name:' Jane Student ',email:'JANE@example.com',school:'University',study_year:'Second year',preferred_role:'graphics',motivation:'I want to contribute.',experience:'Layout and typography',consent:true,consent_version:'recruitment-v1',request_id:'12345678-1234-4234-8234-123456789abc'};
 const request=(body=valid,origin='https://example.com',method='POST')=>new Request('https://backend.example/submit-application',{method,headers:{origin,'content-type':'application/json'},...(method==='POST'?{body:JSON.stringify(body)}:{})});
 test('normalizes applicant fields and ignores privileged client fields',()=>{
   const {data,errors}=validate({...valid,status:'accepted',internal_notes:'injected'});
@@ -13,6 +13,10 @@ test('rejects missing, oversized, invalid-role, consent, and reference fields',(
   const {errors}=validate({...valid,full_name:' ',email:'bad',motivation:'a'.repeat(2001),preferred_role:'leader',consent:false,request_id:'bad'});
   for(const field of ['full_name','email','motivation','preferred_role','consent','request_id'])assert.ok(errors[field]);
 });
+test('requires relevant experience or skills',()=>{
+  for(const experience of ['', '   ', undefined]) assert.ok(validate({...valid,experience}).errors.experience);
+});
+
 test('accepts valid submissions and returns only a reference',async()=>{
   let saved;const handler=createHandler({origins:['https://example.com'],save:async data=>{saved=data;return 'reference';}});
   const response=await handler(request());assert.equal(response.status,200);assert.deepEqual(await response.json(),{reference:'reference'});assert.equal(saved.email,'jane@example.com');assert.equal(saved.turnstile_token,undefined);
